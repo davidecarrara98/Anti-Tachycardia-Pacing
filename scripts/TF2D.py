@@ -96,7 +96,7 @@ scaling_factor = np.int32(1.0/delta_t)
 
 Trigger = 322 #[ms]
 S2 = Trigger/delta_t  #*4
-num_sim = 3
+num_sim = 1
 save_flag = True
 
 # initialization
@@ -138,7 +138,9 @@ for ind_sim in range(num_sim):
     # physical coefficients
     nu_0 = tf.constant(1.5,dtype=tf.float32, shape=())
     nu_1 = tf.constant(4.4,dtype=tf.float32, shape=())
-    nu_2 = tf.constant(0.0117118,dtype=tf.float32, shape=())
+    # parameter to be modified in the interval [0.0116,0.0124]
+    nu_2 = tf.constant(0.012,dtype=tf.float32, shape=())
+
     nu_3 = tf.constant(1.0,dtype=tf.float32, shape=())
     v_th = tf.constant(13,dtype=tf.float32, shape=())
     v_pk = tf.constant(100,dtype=tf.float32, shape=())
@@ -227,13 +229,11 @@ for ind_sim in range(num_sim):
 
         signals[ind_sim,0,:] = signals[ind_sim,0,:]/np.amax(signals[ind_sim,0,:])
 
-        signals[ind_sim,0,:] = signals[ind_sim,0,:] + 0.05*np.random.randn(1,np.int32(max_iter_time/scaling_factor)+1)
+        signals[ind_sim,0,:] = signals[ind_sim,0,:]
 
 
 
 plt.plot(signals[0,1][:],signals[0,0][:])
 
 if save_flag==True:
-    np.save('signals_3_patients.npy', signals)
-
-import pdb; pdb.set_trace();
+    np.save('signals_num_simulation.npy', signals)
