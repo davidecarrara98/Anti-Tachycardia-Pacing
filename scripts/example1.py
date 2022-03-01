@@ -14,9 +14,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-import nisaba as ns
-import nisaba.experimental as nse
-
 
 dataset_p = np.load('signals_3_patients.npy')
 

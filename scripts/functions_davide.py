@@ -1,30 +1,22 @@
-"""!
-@file TF2D.py
-
-@brief 2D solver of the monodomain equation based on the finite difference method.
-
-@author Stefano Pagani <stefano.pagani@polimi.it>.
-
-@date 2022
-
-@section Course: Scientific computing tools for advanced mathematical modelling.
-"""
-
-# Import libraries for simulation
-import tensorflow as tf
 import numpy as np
+import os
 
-# Imports for visualization
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # or any {'0', '1', '2'}
+import tensorflow as tf
 import matplotlib.pyplot as plt
-import matplotlib.animation as animation
-from matplotlib.animation import FuncAnimation
+from tqdm import tqdm
+from sklearn.metrics import mean_squared_error
 
+def l2_norm(true_curve, noisy_curve):
+    minlength = np.minimum(true_curve.shape[1], noisy_curve.shape[1])
+    MSE = mean_squared_error(true_curve[0, :minlength], noisy_curve[0, :minlength])
+    return MSE
 
 # inner function for solution representation
 def plotsolution(u_k, k):
     plt.clf()
 
-    plt.title(f"Solution at t = {k * delta_t:.3f} ms")
+    # plt.title(f"Solution at t = {k * delta_t:.3f} ms")
     plt.xlabel("x")
     plt.ylabel("y")
 
@@ -90,31 +82,29 @@ def diff_x(x):
     return simple_conv(x, diff_k)
 
 
-# space discretization
-N = np.int32(128)
-M = np.int32(64)
-h = 2 / N
-print(h)  # cm
+def generate_curve(T, nu2, ICD_time=460, ICD_duration=5, N=128, M=64, delta_t=0.01):
+    # space discretization
+    N = np.int32(N)
+    M = np.int32(M)
+    h = 2 / N
 
-# time discretization
-delta_t = tf.constant(0.01, dtype=tf.float32, shape=())
-max_iter_time = np.int32(800 / delta_t) + 1
-scaling_factor = np.int32(1.0 / delta_t)
+    # time discretization
+    delta_t = tf.constant(delta_t, dtype=tf.float32, shape=())
+    max_iter_time = np.int32(T / delta_t) + 1
+    scaling_factor = np.int32(1.0 / delta_t)
 
-Trigger = 322  # [ms]
-S2 = Trigger / delta_t  # *4
-num_sim = 1
-save_flag = True
+    Trigger = 322  # [ms]
+    S2 = Trigger / delta_t  # *4
+    num_sim = 1
+    save_flag = True
 
-# initialization
-signals = np.zeros([num_sim, 3, np.int32(max_iter_time / scaling_factor) + 1], dtype=np.float32)
-
-for ind_sim in range(num_sim):
+    # initialization
+    signals = np.zeros([num_sim, 3, np.int32(max_iter_time / scaling_factor) + 1], dtype=np.float32)
 
     # timing of shock
-    ICD_time = np.int32(460 / delta_t)
+    ICD_time = np.int32(ICD_time / delta_t)
     # duration of the shock
-    ICD_duration = 5
+    ICD_duration = ICD_duration
     # amplitude of the shock
     ICD_amplitude = 1.0
 
@@ -140,13 +130,14 @@ for ind_sim in range(num_sim):
 
     # side
     Iapp_IC[:, 0:np.int32(0.05 / h)] = 100.0
-    Ulist = [];
+    Ulist = []
 
     # physical coefficients
     nu_0 = tf.constant(1.5, dtype=tf.float32, shape=())
     nu_1 = tf.constant(4.4, dtype=tf.float32, shape=())
+
     # parameter to be modified in the interval [0.0116,0.0124]
-    nu_2 = tf.constant(0.012, dtype=tf.float32, shape=())
+    nu_2 = tf.constant(nu2, dtype=tf.float32, shape=())
 
     nu_3 = tf.constant(1.0, dtype=tf.float32, shape=())
     v_th = tf.constant(13, dtype=tf.float32, shape=())
@@ -162,10 +153,7 @@ for ind_sim in range(num_sim):
     IappIC = tf.Variable(Iapp_IC)
     Dr = tf.Variable(r_coeff, dtype=np.float32)
 
-    Ulist.append(Ut)
-
-    # time advancing
-    for i in range(max_iter_time):
+    for i in tqdm(range(max_iter_time), desc='Building Curve', leave=False):
 
         # sinus rhythm
         if ((i > -1) & (i < 1 + np.int32(2 / delta_t))) | \
@@ -194,7 +182,7 @@ for ind_sim in range(num_sim):
         g_ion = nu_2 * (Ut / v_pk - nu_3 * Wt)
 
         # update the solution
-        Ut = Ut + delta_t * (Dr * D_2 * laplace(Ut) + Dr * (D_1 - D_2) * laplace_fiber(Ut) \
+        Ut = Ut + delta_t * (Dr * D_2 * laplace(Ut) + Dr * (D_1 - D_2) * laplace_fiber(Ut)
                              - I_ion + coeff_init * IappIC + coeff * Iapp + coeff_ICD * IappICD)
         Wt = Wt + delta_t * g_ion
 
@@ -208,40 +196,34 @@ for ind_sim in range(num_sim):
 
         Ut = tf.Variable(tmp_u)
 
-        if (np.mod(i, 400) == 0):
-            print(i)
-            plotsolution(Ut, i)
-
         Ulist.append(Ut)
 
-    if save_flag == True:
+    if save_flag:
 
-        for i in range(max_iter_time + 1):
+        for i in tqdm(range(max_iter_time + 1), desc='Compiling Curve', leave=False):
             k = np.int32(i / scaling_factor)
             if (np.mod(i, scaling_factor) == 0):
                 ref = Ulist[i][np.int32(N / 2)][np.int32(M / 2)]
 
                 # pseudo ECG
-                signals[ind_sim, 0, k] = 1 / (h ** 2) * np.sum(
+                signals[0, 0, k] = 1 / (h ** 2) * np.sum(
                     diff_x(Ulist[i][:][:]) * diff_y(distance_matrix_1) + diff_y(Ulist[i][:][:]) * diff_y(
                         distance_matrix_1)) \
-                                         - 1 / (h ** 2) * np.sum(
+                                   - 1 / (h ** 2) * np.sum(
                     diff_x(Ulist[i][:][:]) * diff_y(distance_matrix_2) + diff_y(Ulist[i][:][:]) * diff_y(
                         distance_matrix_2))
 
-                signals[ind_sim, 1, k] = i * delta_t
+                signals[0, 1, k] = i * delta_t
 
                 # ICD trace
                 if (i > ICD_time) & (i < ICD_time + np.int32(ICD_duration / delta_t)):
-                    signals[ind_sim, 2, k] = ICD_amplitude
+                    signals[0, 2, k] = ICD_amplitude
                 else:
-                    signals[ind_sim, 2, k] = 0.0
+                    signals[0, 2, k] = 0.0
 
-        signals[ind_sim, 0, :] = signals[ind_sim, 0, :] / np.amax(signals[ind_sim, 0, :])
+        signals[0, 0, :] = signals[0, 0, :] / np.amax(signals[0, 0, :])
 
-        signals[ind_sim, 0, :] = signals[ind_sim, 0, :]
+        signals[0, 0, :] = signals[0, 0, :]
 
-plt.plot(signals[0, 1][:], signals[0, 0][:])
+    return signals
 
-if save_flag == True:
-    np.save('signals_num_simulation.npy', signals)
