@@ -79,10 +79,17 @@ class BayesOptimizer:
             except:
                 new_p = functions_davide.generate_curve(T=self.T, nu2=self.est_nu2)[0]
                 new_p = np.array(new_p)
-                np.save(f'new_patient{self.est_nu2[0]}_{self.T}', new_p)
+                try:
+                    np.save(f'new_patient{self.est_nu2[0]}_{self.T}', new_p)
+                except:
+                    np.save(f'new_patient{self.est_nu2}_{self.T}', new_p)
 
             new_mse = functions_davide.l2_norm(new_p, self.patient)
-            self.data_vec = np.append(self.data_vec, [(self.est_nu2, [new_mse])], axis=0)
+
+            try:
+                self.data_vec = np.append(self.data_vec, [(self.est_nu2, [new_mse])], axis=0)
+            except:
+                self.data_vec = np.append(self.data_vec, [([self.est_nu2], [new_mse])], axis=0)
 
             self.model = GPy.models.GPRegression(self.data_vec[:, 0], self.data_vec[:, 1], self.kernel)
             self.model['rbf.lengthscale'].constrain_bounded(1e-5, 1e-4, warning=False)
