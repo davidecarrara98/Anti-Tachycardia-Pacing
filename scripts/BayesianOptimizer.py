@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-
+import os
 import functions_davide
 from matplotlib import pylab
 import numpy as np
@@ -11,7 +11,7 @@ def acquisition_function(yp, vp, beta=2):
 
 
 class BayesOptimizer:
-    def __init__(self, observed_patient, T=450, niter=30, k=3):
+    def __init__(self, observed_patient, T=450, niter=30, k=3, load_all=False):
         self.patient = observed_patient
         self.est_nu2 = None
         self.data_vec = None
@@ -19,32 +19,45 @@ class BayesOptimizer:
         self.k, self.T = k, T
         self.model, self.kernel = None, None
         self.niter = niter
-        self.NU_domain = None
-        self.npoints = 1000
+        self.NU_domain, self.npoints = None, 1000
+        self.load_all = load_all
 
     def start_optimization(self):
-        starting_nus = np.linspace(self.nu_min, self.nu_max, self.k)
-        new_p_list, mse_list = [], []
-        for nu in starting_nus:
-            try:
-                new_p = np.load(f'../Patients/new_patient{nu}_{self.T}.npy')
+        starting_nus, mse_list = [], []
+        if self.load_all:
+            dir = '../Patients/'
+            filenames = next(os.walk(dir), (None, None, []))[2]
+            for name in filenames:
+                nu_file = functions_davide.extract_nu(name)
+                if int(name[-7:-4]) == self.T:
+                    starting_nus.append(nu_file)
+                    new_p = np.load(f'../Patients/new_patient{nu_file}_{self.T}.npy')
+                    new_mse = functions_davide.l2_norm(new_p, self.patient)
+                    mse_list.append(new_mse)
+        self.k = max(self.k, len(mse_list))
 
-            except:
-                new_p = functions_davide.generate_curve(T=self.T, nu2=nu)[0]
-                new_p = np.array(new_p)
-                np.save(f'../Patients/new_patient{nu}_{self.T}', new_p)
+        if not self.load_all or len(mse_list) == 0:
+            starting_nus = np.linspace(self.nu_min, self.nu_max, self.k)
+            for nu in starting_nus:
+                try:
+                    new_p = np.load(f'../Patients/new_patient{nu}_{self.T}.npy')
 
-            new_mse = functions_davide.l2_norm(new_p, self.patient)
-            # new_p_list.append(new_p)
-            mse_list.append(new_mse)
+                except:
+                    new_p = functions_davide.generate_curve(T=self.T, nu2=nu)[0]
+                    new_p = np.array(new_p)
+                    np.save(f'../Patients/new_patient{nu}_{self.T}', new_p)
+
+                new_mse = functions_davide.l2_norm(new_p, self.patient)
+                mse_list.append(new_mse)
 
         self.data_vec = np.array([([i], [j]) for i, j in zip(starting_nus, mse_list)])
+        print(f'Starting optimization with {self.data_vec.shape[0]} initial points')
         return
 
     def initialize_gp(self):
         self.kernel = GPy.kern.RBF(input_dim=1)
         self.model = GPy.models.GPRegression(self.data_vec[:, 0], self.data_vec[:, 1], self.kernel)
-        self.model['rbf.lengthscale'].constrain_bounded(1e-5, 1e-4, warning=False)
+        self.model['rbf.lengthscale'].constrain_bounded(1e-5, 5e-4, warning=False)
         self.model.optimize(messages=False)
         print(self.model)
         self.model.plot()
@@ -56,6 +69,7 @@ class BayesOptimizer:
         dnu = nu_range / self.npoints
 
         niter = self.niter - self.k
+        niter = max(niter, 4)
 
         for iter in range(niter):
 

@@ -227,3 +227,9 @@ def generate_curve(T, nu2, ICD_time=460, ICD_duration=5, N=128, M=64, delta_t=0.
 
     return signals
 
+
+def extract_nu(name):
+    no_time = name[:-8]
+    nu_string = no_time[11:]
+    nu_float = float(nu_string)
+    return nu_float
