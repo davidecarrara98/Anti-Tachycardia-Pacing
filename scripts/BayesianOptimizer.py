@@ -27,12 +27,12 @@ class BayesOptimizer:
         new_p_list, mse_list = [], []
         for nu in starting_nus:
             try:
-                new_p = np.load(f'new_patient{nu}_{self.T}.npy')
+                new_p = np.load(f'../Patients/new_patient{nu}_{self.T}.npy')
 
             except:
                 new_p = functions_davide.generate_curve(T=self.T, nu2=nu)[0]
                 new_p = np.array(new_p)
-                np.save(f'new_patient{nu}_{self.T}', new_p)
+                np.save(f'../Patients/new_patient{nu}_{self.T}', new_p)
 
             new_mse = functions_davide.l2_norm(new_p, self.patient)
             # new_p_list.append(new_p)
@@ -74,15 +74,15 @@ class BayesOptimizer:
                 self.est_nu2 = self.nu_max
 
             try:
-                new_p = np.load(f'new_patient{self.est_nu2[0]}_{self.T}.npy')
+                new_p = np.load(f'../Patients/new_patient{self.est_nu2[0]}_{self.T}.npy')
 
             except:
                 new_p = functions_davide.generate_curve(T=self.T, nu2=self.est_nu2)[0]
                 new_p = np.array(new_p)
                 try:
-                    np.save(f'new_patient{self.est_nu2[0]}_{self.T}', new_p)
+                    np.save(f'../Patients/new_patient{self.est_nu2[0]}_{self.T}', new_p)
                 except:
-                    np.save(f'new_patient{self.est_nu2}_{self.T}', new_p)
+                    np.save(f'../Patients/new_patient{self.est_nu2}_{self.T}', new_p)
 
             new_mse = functions_davide.l2_norm(new_p, self.patient)
 
