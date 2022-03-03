@@ -11,8 +11,9 @@ def acquisition_function(yp, vp, beta=2):
 
 
 class BayesOptimizer:
-    def __init__(self, observed_patient, T=450, niter=30, k=3, load_all=False, error_function=functions_davide.l2_norm, min_iter=4):
+    def __init__(self, observed_patient, name_patient = "Unkown", T=450, niter=30, k=3, load_all=False, error_function=functions_davide.l2_norm, min_iter=4):
         self.patient = observed_patient
+        self.name_patient = name_patient
         self.est_nu2 = None
         self.data_vec = None
         self.nu_min, self.nu_max = 0.0116, 0.0124
@@ -63,6 +64,9 @@ class BayesOptimizer:
         if not self.load_all:
             print(self.model)
             self.model.plot()
+            plt.title(f"Start search on {self.name_patient}")
+            plt.xlabel("nu")
+            plt.ylabel("MSE")
             pylab.show(block=True)
         return
 
@@ -118,7 +122,9 @@ class BayesOptimizer:
 
         print(self.model)
         self.model.plot()
-        plt.title('Error over nu')
+        plt.title(f"End search on {self.name_patient}")
+        plt.xlabel("nu")
+        plt.ylabel("MSE")
         pylab.show(block=True)
 
         self.NU_domain = np.linspace(self.nu_min, self.nu_max,
