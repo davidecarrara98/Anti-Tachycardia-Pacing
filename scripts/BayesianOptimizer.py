@@ -117,8 +117,8 @@ class BayesOptimizer:
     def results(self):
 
         print(self.model)
-        plt.title('Error over nu')
         self.model.plot()
+        plt.title('Error over nu')
         pylab.show(block=True)
 
         self.NU_domain = np.linspace(self.nu_min, self.nu_max,
