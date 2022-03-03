@@ -11,19 +11,20 @@ def acquisition_function(yp, vp, beta=2):
 
 
 class BayesOptimizer:
-    def __init__(self, observed_patient, T=450, niter=30, k=3, load_all=False):
+    def __init__(self, observed_patient, T=450, niter=30, k=3, load_all=False, error_function=functions_davide.l2_norm, min_iter=4):
         self.patient = observed_patient
         self.est_nu2 = None
         self.data_vec = None
         self.nu_min, self.nu_max = 0.0116, 0.0124
         self.k, self.T = k, T
         self.model, self.kernel = None, None
-        self.niter = niter
+        self.niter, self.min_iter = niter, min_iter
         self.NU_domain, self.npoints = None, 1000
         self.load_all = load_all
+        self.error_function = error_function
 
     def start_optimization(self):
-        starting_nus, mse_list = [], []
+        starting_nus, error_list = [], []
         if self.load_all:
             dir = '../Patients/'
             filenames = next(os.walk(dir), (None, None, []))[2]
@@ -32,11 +33,11 @@ class BayesOptimizer:
                 if int(name[-7:-4]) == self.T:
                     starting_nus.append(nu_file)
                     new_p = np.load(f'../Patients/new_patient{nu_file}_{self.T}.npy')
-                    new_mse = functions_davide.l2_norm(new_p, self.patient)
-                    mse_list.append(new_mse)
-        self.k = max(self.k, len(mse_list))
+                    new_error = self.error_function(new_p, self.patient)
+                    error_list.append(new_error)
+        self.k = max(self.k, len(error_list))
 
-        if not self.load_all or len(mse_list) == 0:
+        if not self.load_all or len(error_list) == 0:
             starting_nus = np.linspace(self.nu_min, self.nu_max, self.k)
             for nu in starting_nus:
                 try:
@@ -47,20 +48,22 @@ class BayesOptimizer:
                     new_p = np.array(new_p)
                     np.save(f'../Patients/new_patient{nu}_{self.T}', new_p)
 
-                new_mse = functions_davide.l2_norm(new_p, self.patient)
-                mse_list.append(new_mse)
+                new_error = self.error_function(new_p, self.patient)
+                error_list.append(new_error)
 
-        self.data_vec = np.array([([i], [j]) for i, j in zip(starting_nus, mse_list)])
+        self.data_vec = np.array([([i], [j]) for i, j in zip(starting_nus, error_list)])
         print(f'Starting optimization with {self.data_vec.shape[0]} initial points')
         return
 
     def initialize_gp(self):
         self.kernel = GPy.kern.RBF(input_dim=1)
         self.model = GPy.models.GPRegression(self.data_vec[:, 0], self.data_vec[:, 1], self.kernel)
-        self.model['rbf.lengthscale'].constrain_bounded(1e-5, 5e-4, warning=False)
+        self.model['rbf.lengthscale'].constrain_bounded(1e-5, 1e-4, warning=False)
         self.model.optimize(messages=False)
-        print(self.model)
-        self.model.plot()
+        if not self.load_all:
+            print(self.model)
+            self.model.plot()
+            pylab.show(block=True)
         return
 
     def optimize_gp(self):
@@ -69,15 +72,15 @@ class BayesOptimizer:
         dnu = nu_range / self.npoints
 
         niter = self.niter - self.k
-        niter = max(niter, 4)
+        niter = max(niter, self.min_iter)
 
-        for iter in range(niter):
+        for iterations in range(niter):
 
             self.NU_domain = np.linspace(self.nu_min + dnu * np.random.uniform(),
                                          self.nu_max + dnu * np.random.uniform(),
                                          self.npoints).reshape(-1, 1)
 
-            print(niter - iter, ' iterations remaining')
+            print(niter - iterations, ' iterations remaining')
             yp, vp = self.model.predict(self.NU_domain)
             evaluated_data = acquisition_function(yp, vp)
 
@@ -98,12 +101,12 @@ class BayesOptimizer:
                 except:
                     np.save(f'../Patients/new_patient{self.est_nu2}_{self.T}', new_p)
 
-            new_mse = functions_davide.l2_norm(new_p, self.patient)
+            new_error = self.error_function(new_p, self.patient)
 
             try:
-                self.data_vec = np.append(self.data_vec, [(self.est_nu2, [new_mse])], axis=0)
+                self.data_vec = np.append(self.data_vec, [(self.est_nu2, [new_error])], axis=0)
             except:
-                self.data_vec = np.append(self.data_vec, [([self.est_nu2], [new_mse])], axis=0)
+                self.data_vec = np.append(self.data_vec, [([self.est_nu2], [new_error])], axis=0)
 
             self.model = GPy.models.GPRegression(self.data_vec[:, 0], self.data_vec[:, 1], self.kernel)
             self.model['rbf.lengthscale'].constrain_bounded(1e-5, 1e-4, warning=False)
@@ -114,7 +117,7 @@ class BayesOptimizer:
     def results(self):
 
         print(self.model)
-        plt.title('MSE over nu')
+        plt.title('Error over nu')
         self.model.plot()
         pylab.show(block=True)
 

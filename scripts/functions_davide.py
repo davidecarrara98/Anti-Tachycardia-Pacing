@@ -5,12 +5,20 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # or any {'0', '1', '2'}
 import tensorflow as tf
 import matplotlib.pyplot as plt
 from tqdm import tqdm
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_squared_error, mean_absolute_error
 
 def l2_norm(true_curve, noisy_curve):
     minlength = np.minimum(true_curve.shape[1], noisy_curve.shape[1])
     MSE = mean_squared_error(true_curve[0, :minlength], noisy_curve[0, :minlength])
     return MSE
+
+def l1_norm(true_curve, noisy_curve):
+    minlength = np.minimum(true_curve.shape[1], noisy_curve.shape[1])
+    MAE = mean_absolute_error(true_curve[0, :minlength], noisy_curve[0, :minlength])
+    return MAE
+
+def l12_norm(true_curve, noisy_curve):
+    return l1_norm(true_curve, noisy_curve) + l2_norm(true_curve, noisy_curve)
 
 # inner function for solution representation
 def plotsolution(u_k, k):
@@ -153,7 +161,7 @@ def generate_curve(T, nu2, ICD_time=460, ICD_duration=5, N=128, M=64, delta_t=0.
     IappIC = tf.Variable(Iapp_IC)
     Dr = tf.Variable(r_coeff, dtype=np.float32)
 
-    for i in tqdm(range(max_iter_time), desc='Building Curve', leave=False):
+    for i in tqdm(range(max_iter_time), desc=f'Building Curve - Using nu2 = {nu_2}', leave=False):
 
         # sinus rhythm
         if ((i > -1) & (i < 1 + np.int32(2 / delta_t))) | \
@@ -200,7 +208,7 @@ def generate_curve(T, nu2, ICD_time=460, ICD_duration=5, N=128, M=64, delta_t=0.
 
     if save_flag:
 
-        for i in tqdm(range(max_iter_time + 1), desc='Compiling Curve', leave=False):
+        for i in tqdm(range(max_iter_time + 1), desc=f'Compiling Curve - Using nu2 = {nu_2}', leave=False):
             k = np.int32(i / scaling_factor)
             if (np.mod(i, scaling_factor) == 0):
                 ref = Ulist[i][np.int32(N / 2)][np.int32(M / 2)]
