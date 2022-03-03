@@ -10,7 +10,7 @@ patients = np.load('signals_3_patients.npy')
 
 # patient 1 - estimated with MSE: 0.0124 - estimated with MAE: 0.0124 - estimated with comb: 0.0124
 patient1 = np.array(patients[0])
-bayes_opt1 = BayesOptimizer(patient1, name_patient="Patient 1" niter=86, k=4, T=450, load_all=True,
+bayes_opt1 = BayesOptimizer(patient1, name_patient="Patient 1", niter=86, k=4, T=450, load_all=True,
                             min_iter=0, error_function=functions_davide.l12_norm)
 nu1, mod1 = bayes_opt1.optimize()
 
