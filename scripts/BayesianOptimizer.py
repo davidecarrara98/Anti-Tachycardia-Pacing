@@ -11,7 +11,7 @@ def acquisition_function(yp, vp, beta=2):
 
 
 class BayesOptimizer:
-    def __init__(self, observed_patient, name_patient = "Unkown", T=450, niter=30, k=3, load_all=False, error_function=functions_davide.l2_norm, min_iter=4):
+    def __init__(self, observed_patient, name_patient = "Unknown", T=450, niter=30, k=3, load_all=False, error_function=functions_davide.l2_norm, min_iter=4):
         self.patient = observed_patient
         self.name_patient = name_patient
         self.est_nu2 = None
