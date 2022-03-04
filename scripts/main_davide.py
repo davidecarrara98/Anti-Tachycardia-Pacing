@@ -17,11 +17,11 @@ nu1, mod1 = bayes_opt1.optimize()
 # COARSE GRID - estimated with MSE: 0.01205325 - estimated with MAE: 0.01204525 - estimated with comb: 0.01204605
 patient2 = np.array(patients[1])
 bayes_opt2 = BayesOptimizer(patient2, name_patient="Patient 2", niter=10, k=3, T=450, load_all=True,
-                            min_iter=0, error_function=functions_davide.l12_norm, refined_grid=True)
+                            min_iter=2, error_function=functions_davide.l12_norm, refined_grid=True)
 nu2, mod2 = bayes_opt2.optimize()
 
 # COARSE GRID - estimated with MSE: 0.01183063 - estimated with MAE: 0.01182663 - estimated with comb: 0.01182743
 patient3 = np.array(patients[2])
 bayes_opt3 = BayesOptimizer(patient3, name_patient="Patient 3", niter=10, k=3, T=450, load_all=True,
-                            min_iter=0, error_function=functions_davide.l12_norm, refined_grid=True)
+                            min_iter=2, error_function=functions_davide.l12_norm, refined_grid=True)
 nu3, mod3 = bayes_opt3.optimize()
