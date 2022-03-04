@@ -10,7 +10,7 @@ class NumpyArrayEncoder(JSONEncoder):
 
 def save_first_450(nu2, ICD_time=460, ICD_duration=5,refined_grid=True, patient_name='patient'):
     # space discretization
-    T = 450
+    T = 45
     if refined_grid:
         N = np.int32(256)
         M = np.int32(128)
@@ -131,8 +131,8 @@ def save_first_450(nu2, ICD_time=460, ICD_duration=5,refined_grid=True, patient_
 
         Ulist.append(Ut)
 
-    U_save = list(Ut.numpy()) #U_save = Ulist[end].numpy() ??       possiamo fare test con meno di 450 iterazioni, non so perché ne usiamo così tante per testare
-    save_dict = {'Ut' : U_save, 'Wt' : Wt, 'nu_2' : nu_2}
+     #U_save = Ulist[end].numpy() ??       possiamo fare test con meno di 450 iterazioni, non so perché ne usiamo così tante per testare
+    save_dict = {'Ut' : Ut.numpy(), 'Wt' : Wt.numpy(), 'nu_2' : nu_2}
     if refined_grid: grid = 'fine'
     else: grid = 'coarse'
     with open(f'../First_450/{patient_name}_{nu_2}_{grid}.json', 'w') as fp:

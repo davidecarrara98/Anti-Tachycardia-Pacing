@@ -1,0 +1,12 @@
+##### MSE ERROR #####
+Patient_01: 0.0124
+Patient_02: 0.01205325
+Patient_03: 0.01183063
+##### MAE ERROR #####
+Patient_01: 0.0124
+Patient_02: 0.01204525
+Patient_03: 0.01182663
+### MSE+MAE ERROR ###
+Patient_01: 0.0124
+Patient_02: 0.01204605
+Patient_03: 0.01182743
