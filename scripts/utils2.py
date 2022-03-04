@@ -31,7 +31,7 @@ def save_first_450(nu2, ICD_time=460, ICD_duration=5,refined_grid=True, patient_
     # duration of the shock
     ICD_duration = ICD_duration
     # amplitude of the shock
-    ICD_amplitude = 1.0
+    ICD_amplitude = 100.0 #unused
 
     # Initial Condition
     ut_init = np.zeros([N, M], dtype=np.float32)
@@ -83,21 +83,18 @@ def save_first_450(nu2, ICD_time=460, ICD_duration=5,refined_grid=True, patient_
         # sinus rhythm
         if ((i > -1) & (i < 1 + np.int32(2 / delta_t))) | \
                 ((i > np.int32(200 / delta_t)) & (i < np.int32(202 / delta_t))):
-            # coeff_init = ((128/N)**2)*10.0*0.02/delta_t
             coeff_init = 10.0
         else:
             coeff_init = 0.0
 
         # extra-stim
         if (i > S2) & (i < S2 + np.int32(2 / delta_t)):
-            # coeff = ((128/N)**2)*100.0*0.02/delta_t
             coeff = 100.0
         else:
             coeff = 0.0
 
         # ATP impulse
         if (i > ICD_time) & (i < ICD_time + np.int32(ICD_duration / delta_t)):
-            # coeff_ICD = ICD_amplitude*((128/N)**2)*100.0*0.02/delta_t
             coeff_ICD = 100
         else:
             coeff_ICD = 0.0
@@ -154,8 +151,6 @@ def save_first_450(nu2, ICD_time=460, ICD_duration=5,refined_grid=True, patient_
                     signals[0, 2, k] = 0.0
 
         signals[0, 0, :] = signals[0, 0, :] / np.amax(signals[0, 0, :])
-
-        signals[0, 0, :] = signals[0, 0, :]
 
     np.save(f'../First_450/Signal_{patient_name}_{nu_2 : .6f}_{grid}.npy', signals)
     return
