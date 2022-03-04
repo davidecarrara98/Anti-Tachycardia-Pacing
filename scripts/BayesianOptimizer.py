@@ -5,6 +5,11 @@ from matplotlib import pylab
 import numpy as np
 import GPy
 
+def extract_nu(name):
+    no_time = name[:-8]
+    nu_string = no_time[11:]
+    nu_float = float(nu_string)
+    return nu_float
 
 def acquisition_function(yp, vp, beta=2):
     return - yp + beta * np.sqrt(vp)
