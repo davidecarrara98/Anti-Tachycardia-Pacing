@@ -11,15 +11,10 @@ def acquisition_function(yp, vp, beta=2):
 
 
 class BayesOptimizer:
-<<<<<<< Updated upstream
-    def __init__(self, observed_patient, name_patient = "Unknown", T=450, niter=30, k=3, load_all=False, error_function=functions_davide.l2_norm, min_iter=4):
-        self.patient = observed_patient
-        self.name_patient = name_patient
-=======
+
     def __init__(self, observed_patient, name_patient = "Unkown", T=450, niter=30, k=3, load_all=False,
                  error_function=functions_davide.l2_norm, min_iter=4, refined_grid=False):
         self.patient, self.name_patient = observed_patient, name_patient
->>>>>>> Stashed changes
         self.est_nu2 = None
         self.data_vec = None
         self.nu_min, self.nu_max = 0.0116, 0.0124
