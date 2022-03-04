@@ -11,9 +11,15 @@ def acquisition_function(yp, vp, beta=2):
 
 
 class BayesOptimizer:
+<<<<<<< Updated upstream
     def __init__(self, observed_patient, name_patient = "Unknown", T=450, niter=30, k=3, load_all=False, error_function=functions_davide.l2_norm, min_iter=4):
         self.patient = observed_patient
         self.name_patient = name_patient
+=======
+    def __init__(self, observed_patient, name_patient = "Unkown", T=450, niter=30, k=3, load_all=False,
+                 error_function=functions_davide.l2_norm, min_iter=4, refined_grid=False):
+        self.patient, self.name_patient = observed_patient, name_patient
+>>>>>>> Stashed changes
         self.est_nu2 = None
         self.data_vec = None
         self.nu_min, self.nu_max = 0.0116, 0.0124
@@ -21,14 +27,22 @@ class BayesOptimizer:
         self.model, self.kernel = None, None
         self.niter, self.min_iter = niter, min_iter
         self.NU_domain, self.npoints = None, 1000
-        self.load_all = load_all
-        self.error_function = error_function
+        self.load_all, self.refined_grid = load_all, refined_grid
+        self.error_function, self.dimensions = error_function, {}
+
+    def choose_dimensions(self):
+        if self.refined_grid:
+            self.dimensions = {'N':256, 'M':128, 'delta_t':0.005}
+        else:
+            self.dimensions = {'N': 128, 'M': 64, 'delta_t': 0.01}
+        return
+
 
     def start_optimization(self):
         starting_nus, error_list = [], []
         if self.load_all:
-            dir = '../Patients/'
-            filenames = next(os.walk(dir), (None, None, []))[2]
+            patients_dir = '../Patients/'
+            filenames = next(os.walk(patients_dir), (None, None, []))[2]
             for name in filenames:
                 nu_file = functions_davide.extract_nu(name)
                 if int(name[-7:-4]) == self.T:
@@ -45,7 +59,8 @@ class BayesOptimizer:
                     new_p = np.load(f'../Patients/new_patient{nu}_{self.T}.npy')
 
                 except:
-                    new_p = functions_davide.generate_curve(T=self.T, nu2=nu)[0]
+                    new_p = functions_davide.generate_curve(T=self.T, nu2=nu, N=self.dimensions['N'],
+                                                            M=self.dimensions['M'], delta_t=self.dimensions['delta_t'])[0]
                     new_p = np.array(new_p)
                     np.save(f'../Patients/new_patient{nu}_{self.T}', new_p)
 
@@ -98,7 +113,8 @@ class BayesOptimizer:
                 new_p = np.load(f'../Patients/new_patient{self.est_nu2[0]}_{self.T}.npy')
 
             except:
-                new_p = functions_davide.generate_curve(T=self.T, nu2=self.est_nu2)[0]
+                new_p = functions_davide.generate_curve(T=self.T, nu2=self.est_nu2, N=self.dimensions['N'],
+                                                        M=self.dimensions['M'], delta_t=self.dimensions['delta_t'])[0]
                 new_p = np.array(new_p)
                 try:
                     np.save(f'../Patients/new_patient{self.est_nu2[0]}_{self.T}', new_p)
@@ -136,6 +152,7 @@ class BayesOptimizer:
         return
 
     def optimize(self):
+        self.choose_dimensions()
         self.start_optimization()
         self.initialize_gp()
         self.optimize_gp()
