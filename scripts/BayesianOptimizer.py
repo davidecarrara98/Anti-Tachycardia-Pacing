@@ -44,7 +44,7 @@ class BayesOptimizer:
             patients_dir = '../Patients/'
             filenames = next(os.walk(patients_dir), (None, None, []))[2]
             for name in filenames:
-                nu_file = utils1.extract_nu(name)
+                nu_file = extract_nu(name)
                 if int(name[-7:-4]) == self.T:
                     starting_nus.append(nu_file)
                     new_p = np.load(f'../Patients/new_patient{nu_file}_{self.T}.npy')
