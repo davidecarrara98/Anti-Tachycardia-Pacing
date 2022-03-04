@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import os
-import functions_davide
+import utils1
 from matplotlib import pylab
 import numpy as np
 import GPy
@@ -13,7 +13,7 @@ def acquisition_function(yp, vp, beta=2):
 class BayesOptimizer:
 
     def __init__(self, observed_patient, name_patient = "Unkown", T=450, niter=30, k=3, load_all=False,
-                 error_function=functions_davide.l2_norm, min_iter=4, refined_grid=False):
+                 error_function=utils1.l2_norm, min_iter=4, refined_grid=False):
         self.patient, self.name_patient = observed_patient, name_patient
         self.est_nu2 = None
         self.data_vec = None
@@ -39,7 +39,7 @@ class BayesOptimizer:
             patients_dir = '../Patients/'
             filenames = next(os.walk(patients_dir), (None, None, []))[2]
             for name in filenames:
-                nu_file = functions_davide.extract_nu(name)
+                nu_file = utils1.extract_nu(name)
                 if int(name[-7:-4]) == self.T:
                     starting_nus.append(nu_file)
                     new_p = np.load(f'../Patients/new_patient{nu_file}_{self.T}.npy')
@@ -54,8 +54,8 @@ class BayesOptimizer:
                     new_p = np.load(f'../Patients/new_patient{nu}_{self.T}.npy')
 
                 except:
-                    new_p = functions_davide.generate_curve(T=self.T, nu2=nu, N=self.dimensions['N'],
-                                                            M=self.dimensions['M'], delta_t=self.dimensions['delta_t'])[0]
+                    new_p = utils1.generate_curve(T=self.T, nu2=nu, N=self.dimensions['N'],
+                                                  M=self.dimensions['M'], delta_t=self.dimensions['delta_t'])[0]
                     new_p = np.array(new_p)
                     np.save(f'../Patients/new_patient{nu}_{self.T}', new_p)
 
@@ -108,8 +108,8 @@ class BayesOptimizer:
                 new_p = np.load(f'../Patients/new_patient{self.est_nu2[0]}_{self.T}.npy')
 
             except:
-                new_p = functions_davide.generate_curve(T=self.T, nu2=self.est_nu2, N=self.dimensions['N'],
-                                                        M=self.dimensions['M'], delta_t=self.dimensions['delta_t'])[0]
+                new_p = utils1.generate_curve(T=self.T, nu2=self.est_nu2, N=self.dimensions['N'],
+                                              M=self.dimensions['M'], delta_t=self.dimensions['delta_t'])[0]
                 new_p = np.array(new_p)
                 try:
                     np.save(f'../Patients/new_patient{self.est_nu2[0]}_{self.T}', new_p)

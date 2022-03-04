@@ -1,17 +1,24 @@
-from functions_davide import *
+from utils1 import *
+from json import JSONEncoder
+import json
+
+class NumpyArrayEncoder(JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return JSONEncoder.default(self, obj)
 
 def save_first_450(nu2, ICD_time=460, ICD_duration=5,refined_grid=True, patient_name='patient'):
     # space discretization
     T = 450
     if refined_grid:
-        N = np.int32(256),
-        M = np.int32(128),
+        N = np.int32(256)
+        M = np.int32(128)
         delta_t = 0.005
     else:
-        N = np.int32(128),
-        M = np.int32(64),
+        N = np.int32(128)
+        M = np.int32(64)
         delta_t = 0.01
-
 
     h = 2 / N
 
@@ -23,7 +30,6 @@ def save_first_450(nu2, ICD_time=460, ICD_duration=5,refined_grid=True, patient_
     Trigger = 322  # [ms]
     S2 = Trigger / delta_t  # *4
     num_sim = 1
-    save_flag = True
 
     # initialization
     #signals = np.zeros([num_sim, 3, np.int32(max_iter_time / scaling_factor) + 1], dtype=np.float32)
@@ -80,7 +86,7 @@ def save_first_450(nu2, ICD_time=460, ICD_duration=5,refined_grid=True, patient_
     IappIC = tf.Variable(Iapp_IC)
     Dr = tf.Variable(r_coeff, dtype=np.float32)
 
-    for i in tqdm(range(max_iter_time), desc=f'Building Curve - Using nu2 = {nu_2}', leave=False):
+    for i in tqdm(range(max_iter_time), desc=f'Building Curve - Using nu2 = {nu_2 : .4f}', leave=False):
 
         # sinus rhythm
         if ((i > -1) & (i < 1 + np.int32(2 / delta_t))) | \
@@ -125,10 +131,12 @@ def save_first_450(nu2, ICD_time=460, ICD_duration=5,refined_grid=True, patient_
 
         Ulist.append(Ut)
 
-    save_dict = {'Ut' : Ut, 'Wt' : Wt, 'nu_2' : nu_2}
-    import json
-    with open(f'../First_450/{patient_name}_{nu_2}.json', 'w') as fp:
-        json.dump(save_dict, fp)
+    U_save = list(Ut.numpy()) #U_save = Ulist[end].numpy() ??       possiamo fare test con meno di 450 iterazioni, non so perché ne usiamo così tante per testare
+    save_dict = {'Ut' : U_save, 'Wt' : Wt, 'nu_2' : nu_2}
+    if refined_grid: grid = 'fine'
+    else: grid = 'coarse'
+    with open(f'../First_450/{patient_name}_{nu_2}_{grid}.json', 'w') as fp:
+        json.dump(save_dict, fp, cls=NumpyArrayEncoder)
 
 
     return
