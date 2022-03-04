@@ -1,5 +1,16 @@
 from utils1 import *
 
+def load_nu(error_type = "MSE+MAE", num_patients = 3, nu_file_path = "nu_patients.txt"):
+    error_dict = {"MSE":0,"MAE":1,"MSE+MAE":2}
+    nu_dict = {}
+    with open(nu_file_path) as nu_file:
+        start_line = (num_patients+1)*error_dict[error_type]+ 1
+        nu_lines = nu_file.readlines()[start_line:start_line+num_patients]
+        for i, patient_line in enumerate(nu_lines):
+            patient_line = patient_line[11:]
+            nu_dict[i+1] = float(patient_line.strip())
+    return nu_dict
+
 def save_first_450(nu2, ICD_time=460, ICD_duration=5,refined_grid=True, patient_name='patient'):
     # space discretization
     T = 450
@@ -79,7 +90,7 @@ def save_first_450(nu2, ICD_time=460, ICD_duration=5,refined_grid=True, patient_
     IappIC = tf.Variable(Iapp_IC)
     Dr = tf.Variable(r_coeff, dtype=np.float32)
 
-    for i in tqdm(range(max_iter_time), desc=f'Building Curve - Using nu2 = {nu_2 : .6f}', leave=False):
+    for i in tqdm(range(max_iter_time), desc=f'Building Initial Curve - Using nu2 ={nu_2 : .6f}', leave=False):
 
         # sinus rhythm
         if ((i > -1) & (i < 1 + np.int32(2 / delta_t))) | \
@@ -121,14 +132,14 @@ def save_first_450(nu2, ICD_time=460, ICD_duration=5,refined_grid=True, patient_
 
         Ulist.append(Ut)
 
-    np.save(f'../First_450/Nu2_{patient_name}_{nu_2 : .6f}_{grid}.npy', np.array(nu_2))
-    np.save(f'../First_450/Ut_{patient_name}_{nu_2 : .6f}_{grid}.npy', np.array(Ut))
-    np.save(f'../First_450/Wt_{patient_name}_{nu_2 : .6f}_{grid}.npy', np.array(Wt))
+    np.save(f'First_450/Nu2_{patient_name}_{nu_2 : .6f}_{grid}.npy', nu_2.numpy())
+    np.save(f'First_450/Ut_{patient_name}_{nu_2 : .6f}_{grid}.npy', Ut.numpy())
+    np.save(f'First_450/Wt_{patient_name}_{nu_2 : .6f}_{grid}.npy', Wt.numpy())
 
     save_flag = True
     if save_flag:
 
-        for i in tqdm(range(max_iter_time + 1), desc=f'Compiling Curve - Using nu2 = {nu_2 : .6f}', leave=False):
+        for i in tqdm(range(max_iter_time + 1), desc=f'Compiling Initial Curve - Using nu2 ={nu_2 : .6f}', leave=False):
             k = np.int32(i / scaling_factor)
             if (np.mod(i, scaling_factor) == 0):
                 ref = Ulist[i][np.int32(N / 2)][np.int32(M / 2)]
@@ -149,7 +160,7 @@ def save_first_450(nu2, ICD_time=460, ICD_duration=5,refined_grid=True, patient_
                 else:
                     signals[0, 2, k] = 0.0
 
-    np.save(f'../First_450/Signal_{patient_name}_{nu_2 : .6f}_{grid}.npy', signals)
+    np.save(f'First_450/Signal_{patient_name}_{nu_2 : .6f}_{grid}.npy', signals)
     return
 
 def generate_last_350(nu2, ICD_time=460, ICD_duration=5, refined_grid=True, patient_name='patient'):
@@ -187,9 +198,8 @@ def generate_last_350(nu2, ICD_time=460, ICD_duration=5, refined_grid=True, pati
     ICD_amplitude = 100.0 #unused
 
     # Initial Condition
-    print(f'../First_450/Ut_patient_{nu2 : .6f}_{grid}.npy')
-    ut_init = np.load(f'../First_450/Ut_patient_{nu2 : .6f}_{grid}.npy', allow_pickle=True)
-    wt_init = np.load(f'../First_450/Wt_patient_{nu2 : .6f}_{grid}.npy', allow_pickle=True)
+    ut_init = np.load(f'First_450/Ut_patient_{nu2 : .6f}_{grid}.npy', allow_pickle=True)
+    wt_init = np.load(f'First_450/Wt_patient_{nu2 : .6f}_{grid}.npy', allow_pickle=True)
     Iapp_IC = np.zeros([N, M], dtype=np.float32)
     Iapp_init = np.zeros([N, M], dtype=np.float32)
     Iapp_ICD = np.zeros([N, M], dtype=np.float32)
@@ -233,7 +243,7 @@ def generate_last_350(nu2, ICD_time=460, ICD_duration=5, refined_grid=True, pati
     IappIC = tf.Variable(Iapp_IC)
     Dr = tf.Variable(r_coeff, dtype=np.float32)
 
-    for i in tqdm(range(max_iter_time), desc=f'Building Curve - Using nu2 = {nu_2 : .6f}', leave=False):
+    for i in tqdm(range(max_iter_time), desc=f'Building Complete Curve - Using nu2 ={nu_2 : .6f}', leave=False):
         
         if i <= np.int32(450/delta_t): continue
             
@@ -277,12 +287,12 @@ def generate_last_350(nu2, ICD_time=460, ICD_duration=5, refined_grid=True, pati
 
         Ulist.append(Ut)
 
-    signal = np.load(f'../First_450/Signal_patient_{nu2 : .6f}_{grid}.npy', allow_pickle=True)
+    signal = np.load(f'First_450/Signal_patient_{nu2 : .6f}_{grid}.npy', allow_pickle=True)
     signals[:, :, :signal.shape[2]] = signal
     save_flag = True
     if save_flag:
 
-        for i in tqdm(range(350*max_iter_time/T + 1), desc=f'Compiling Curve - Using nu2 = {nu_2 : .6f}', leave=False):
+        for i in tqdm(range(np.int32(350*max_iter_time/T)), desc=f'Compiling Complete Curve - Using nu2 ={nu_2 : .6f}', leave=False):
             k = np.int32(i / scaling_factor) + 451
             if (np.mod(i, scaling_factor) == 0):
                 ref = Ulist[i][np.int32(N / 2)][np.int32(M / 2)]
@@ -295,7 +305,7 @@ def generate_last_350(nu2, ICD_time=460, ICD_duration=5, refined_grid=True, pati
                     diff_x(Ulist[i][:][:]) * diff_y(distance_matrix_2) + diff_y(Ulist[i][:][:]) * diff_y(
                         distance_matrix_2))
 
-                signals[0, 1, k] = i * delta_t
+                signals[0, 1, k] = i * delta_t + 451
 
                 # ICD trace
                 if (i > ICD_time) & (i < ICD_time + np.int32(ICD_duration / delta_t)):

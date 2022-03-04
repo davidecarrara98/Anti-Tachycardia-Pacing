@@ -41,13 +41,13 @@ class BayesOptimizer:
     def start_optimization(self):
         starting_nus, error_list = [], []
         if self.load_all:
-            patients_dir = '../Patients/'
+            patients_dir = 'Patients/'
             filenames = next(os.walk(patients_dir), (None, None, []))[2]
             for name in filenames:
                 nu_file = extract_nu(name)
                 if int(name[-7:-4]) == self.T:
                     starting_nus.append(nu_file)
-                    new_p = np.load(f'../Patients/new_patient{nu_file}_{self.T}.npy')
+                    new_p = np.load(f'Patients/new_patient{nu_file}_{self.T}.npy')
                     new_error = self.error_function(new_p, self.patient)
                     error_list.append(new_error)
         self.k = max(self.k, len(error_list))
@@ -56,13 +56,13 @@ class BayesOptimizer:
             starting_nus = np.linspace(self.nu_min, self.nu_max, self.k)
             for nu in starting_nus:
                 try:
-                    new_p = np.load(f'../Patients/new_patient{nu}_{self.T}.npy')
+                    new_p = np.load(f'Patients/new_patient{nu}_{self.T}.npy')
 
                 except:
                     new_p = utils1.generate_curve(T=self.T, nu2=nu, N=self.dimensions['N'],
                                                   M=self.dimensions['M'], delta_t=self.dimensions['delta_t'])[0]
                     new_p = np.array(new_p)
-                    np.save(f'../Patients/new_patient{nu}_{self.T}', new_p)
+                    np.save(f'Patients/new_patient{nu}_{self.T}', new_p)
 
                 new_error = self.error_function(new_p, self.patient)
                 error_list.append(new_error)
@@ -110,16 +110,16 @@ class BayesOptimizer:
                 self.est_nu2 = self.nu_max
 
             try:
-                new_p = np.load(f'../Patients/new_patient{self.est_nu2[0]}_{self.T}.npy')
+                new_p = np.load(f'Patients/new_patient{self.est_nu2[0]}_{self.T}.npy')
 
             except:
                 new_p = utils1.generate_curve(T=self.T, nu2=self.est_nu2, N=self.dimensions['N'],
                                               M=self.dimensions['M'], delta_t=self.dimensions['delta_t'])[0]
                 new_p = np.array(new_p)
                 try:
-                    np.save(f'../Patients/new_patient{self.est_nu2[0]}_{self.T}', new_p)
+                    np.save(f'Patients/new_patient{self.est_nu2[0]}_{self.T}', new_p)
                 except:
-                    np.save(f'../Patients/new_patient{self.est_nu2}_{self.T}', new_p)
+                    np.save(f'Patients/new_patient{self.est_nu2}_{self.T}', new_p)
 
             new_error = self.error_function(new_p, self.patient)
 
