@@ -1,16 +1,8 @@
 from utils1 import *
-from json import JSONEncoder
-import json
-
-class NumpyArrayEncoder(JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, np.ndarray):
-            return obj.tolist()
-        return JSONEncoder.default(self, obj)
 
 def save_first_450(nu2, ICD_time=460, ICD_duration=5,refined_grid=True, patient_name='patient'):
     # space discretization
-    T = 45
+    T = 450
     if refined_grid:
         N = np.int32(256)
         M = np.int32(128)
@@ -32,14 +24,14 @@ def save_first_450(nu2, ICD_time=460, ICD_duration=5,refined_grid=True, patient_
     num_sim = 1
 
     # initialization
-    #signals = np.zeros([num_sim, 3, np.int32(max_iter_time / scaling_factor) + 1], dtype=np.float32)
+    signals = np.zeros([num_sim, 3, np.int32(max_iter_time / scaling_factor) + 1], dtype=np.float32)
 
     # timing of shock
-    #ICD_time = np.int32(ICD_time / delta_t)
+    ICD_time = np.int32(ICD_time / delta_t)
     # duration of the shock
-    #ICD_duration = ICD_duration
+    ICD_duration = ICD_duration
     # amplitude of the shock
-    #ICD_amplitude = 1.0
+    ICD_amplitude = 1.0
 
     # Initial Condition
     ut_init = np.zeros([N, M], dtype=np.float32)
@@ -86,7 +78,7 @@ def save_first_450(nu2, ICD_time=460, ICD_duration=5,refined_grid=True, patient_
     IappIC = tf.Variable(Iapp_IC)
     Dr = tf.Variable(r_coeff, dtype=np.float32)
 
-    for i in tqdm(range(max_iter_time), desc=f'Building Curve - Using nu2 = {nu_2 : .4f}', leave=False):
+    for i in tqdm(range(max_iter_time), desc=f'Building Curve - Using nu2 = {nu_2 : .6f}', leave=False):
 
         # sinus rhythm
         if ((i > -1) & (i < 1 + np.int32(2 / delta_t))) | \
@@ -131,12 +123,39 @@ def save_first_450(nu2, ICD_time=460, ICD_duration=5,refined_grid=True, patient_
 
         Ulist.append(Ut)
 
-     #U_save = Ulist[end].numpy() ??       possiamo fare test con meno di 450 iterazioni, non so perché ne usiamo così tante per testare
-    save_dict = {'Ut' : Ut.numpy(), 'Wt' :  np.array(Wt).tolist(), 'nu_2' : nu_2}
-    if refined_grid: grid = 'fine'
-    else: grid = 'coarse'
-    with open(f'../First_450/{patient_name}_{nu_2}_{grid}.json', 'w') as fp:
-        json.dump(save_dict, fp, cls=NumpyArrayEncoder)
+    grid = 'refine' if refined_grid else 'coarse'
 
+    np.save(f'../First_450/Nu2_{patient_name}_{nu_2 : .6f}_{grid}.npy', np.array(nu_2))
+    np.save(f'../First_450/Ut_{patient_name}_{nu_2 : .6f}_{grid}.npy', np.array(Ut))
+    np.save(f'../First_450/Wt_{patient_name}_{nu_2 : .6f}_{grid}.npy', np.array(Wt))
 
+    save_flag = True
+    if save_flag:
+
+        for i in tqdm(range(max_iter_time + 1), desc=f'Compiling Curve - Using nu2 = {nu_2 : .6f}', leave=False):
+            k = np.int32(i / scaling_factor)
+            if (np.mod(i, scaling_factor) == 0):
+                ref = Ulist[i][np.int32(N / 2)][np.int32(M / 2)]
+
+                # pseudo ECG
+                signals[0, 0, k] = 1 / (h ** 2) * np.sum(
+                    diff_x(Ulist[i][:][:]) * diff_y(distance_matrix_1) + diff_y(Ulist[i][:][:]) * diff_y(
+                        distance_matrix_1)) \
+                                   - 1 / (h ** 2) * np.sum(
+                    diff_x(Ulist[i][:][:]) * diff_y(distance_matrix_2) + diff_y(Ulist[i][:][:]) * diff_y(
+                        distance_matrix_2))
+
+                signals[0, 1, k] = i * delta_t
+
+                # ICD trace
+                if (i > ICD_time) & (i < ICD_time + np.int32(ICD_duration / delta_t)):
+                    signals[0, 2, k] = ICD_amplitude
+                else:
+                    signals[0, 2, k] = 0.0
+
+        signals[0, 0, :] = signals[0, 0, :] / np.amax(signals[0, 0, :])
+
+        signals[0, 0, :] = signals[0, 0, :]
+
+    np.save(f'../First_450/Signal_{patient_name}_{nu_2 : .6f}_{grid}.npy', signals)
     return

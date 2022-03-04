@@ -1,17 +1,12 @@
-import json
 import numpy as np
 import utils2
 
-patient_name = 'patient1'
 nu2 = 0.0124
-grid = 'coarse'
-utils2.save_first_450(nu2=0.0124, patient_name='patient1', refined_grid=False)
+grid = 'fine'
+utils2.save_first_450(nu2=0.0124, refined_grid=True)
 
-# Opening JSON file
-f = open(f'../First_450/{patient_name}_{nu2}_{grid}.json')
+signal = np.load(f'../First_450/Signal_patient_{nu2 : .6f}_{grid}.npy')
+Ut = np.load(f'../First_450/Ut_patient_{nu2 : .6f}_{grid}.npy')
+Wt = np.load(f'../First_450/Wt_patient_{nu2 : .6f}_{grid}.npy')
+Nu2 = np.load(f'../First_450/Nu2_patient_{nu2 : .6f}_{grid}.npy')
 
-# returns JSON object as
-# a dictionary
-data = json.load(f)
-data = np.asarray(data["a"])
-print(data)
