@@ -1,8 +1,8 @@
 from functions_davide import *
 
-def save_first_450(T, nu2, ICD_time=460, ICD_duration=5,refined_grid=True):
+def save_first_450(nu2, ICD_time=460, ICD_duration=5,refined_grid=True, patient_name='patient'):
     # space discretization
-
+    T = 450
     if refined_grid:
         N = np.int32(256),
         M = np.int32(128),
@@ -125,31 +125,10 @@ def save_first_450(T, nu2, ICD_time=460, ICD_duration=5,refined_grid=True):
 
         Ulist.append(Ut)
 
-    if save_flag:
+    save_dict = {'Ut' : Ut, 'Wt' : Wt, 'nu_2' : nu_2}
+    import json
+    with open(f'../First_450/{patient_name}_{nu_2}.json', 'w') as fp:
+        json.dump(save_dict, fp)
 
-        for i in tqdm(range(max_iter_time + 1), desc=f'Compiling Curve - Using nu2 = {nu_2}', leave=False):
-            k = np.int32(i / scaling_factor)
-            if (np.mod(i, scaling_factor) == 0):
-                ref = Ulist[i][np.int32(N / 2)][np.int32(M / 2)]
 
-                # pseudo ECG
-                signals[0, 0, k] = 1 / (h ** 2) * np.sum(
-                    diff_x(Ulist[i][:][:]) * diff_y(distance_matrix_1) + diff_y(Ulist[i][:][:]) * diff_y(
-                        distance_matrix_1)) \
-                                   - 1 / (h ** 2) * np.sum(
-                    diff_x(Ulist[i][:][:]) * diff_y(distance_matrix_2) + diff_y(Ulist[i][:][:]) * diff_y(
-                        distance_matrix_2))
-
-                signals[0, 1, k] = i * delta_t
-
-                # ICD trace
-                if (i > ICD_time) & (i < ICD_time + np.int32(ICD_duration / delta_t)):
-                    signals[0, 2, k] = ICD_amplitude
-                else:
-                    signals[0, 2, k] = 0.0
-
-        signals[0, 0, :] = signals[0, 0, :] / np.amax(signals[0, 0, :])
-
-        signals[0, 0, :] = signals[0, 0, :]
-
-    return signals
+    return
