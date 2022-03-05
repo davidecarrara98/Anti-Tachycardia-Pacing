@@ -25,5 +25,5 @@ patients = np.load('signals_3_patients.npy')
 # COARSE GRID - estimated with MSE: 0.01183063 - estimated with MAE: 0.01182663 - estimated with comb: 0.01182743
 patient3 = np.array(patients[2])
 bayes_opt3 = BayesOptimizer(patient3, name_patient="Patient 3", niter=10, k=3, T=450, load_all=True,
-                            min_iter=2, error_function=l2_norm, refined_grid=True)
+                            min_iter=4, error_function=l12_norm, refined_grid=True)
 nu3, mod3 = bayes_opt3.optimize()
