@@ -8,10 +8,10 @@ from utils2 import save_first_450, generate_last_350, load_nu
 patient = 3
 nu2 = load_nu(error_type = "MSE")[patient]
 
-grid_name = "fine"
-grid = True if grid_name == "fine" else False 
+grid_name = "coarse"
+grid = True if grid_name == "refine" else False
 
-#save_first_450(nu2, refined_grid=grid)
+save_first_450(nu2, refined_grid=grid)
 
 new_signal = generate_last_350(nu2, ICD_time=820, ICD_duration=9, refined_grid=grid)
 ori_signal = np.load("signals_3_patients.npy")

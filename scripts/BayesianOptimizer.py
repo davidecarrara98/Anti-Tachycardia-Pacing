@@ -158,3 +158,4 @@ class BayesOptimizer:
         self.optimize_gp()
         self.results()
         return self.est_nu2, self.model
+

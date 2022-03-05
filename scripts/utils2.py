@@ -243,7 +243,7 @@ def generate_last_350(nu2, ICD_time=460, ICD_duration=5, refined_grid=True, pati
     IappIC = tf.Variable(Iapp_IC)
     Dr = tf.Variable(r_coeff, dtype=np.float32)
 
-    for i in tqdm(range(max_iter_time), desc=f'Building Complete Curve - Using nu2 ={nu_2 : .6f}', leave=False):
+    for i in tqdm(range(max_iter_time), desc=f'Building Complete Curve - nu2 ={nu_2 : .6f} - Time {ICD_time * delta_t : .3f} - Dur {ICD_duration : .3f}', leave=False):
         
         if i <= np.int32(450/delta_t): continue
             
@@ -316,3 +316,7 @@ def generate_last_350(nu2, ICD_time=460, ICD_duration=5, refined_grid=True, pati
         signals[0, 0, :] = signals[0, 0, :] / np.amax(signals[0, 0, :])
 
     return signals
+
+def l2_int(curve):
+    integral = np.linalg.norm(curve[0,600:])
+    return integral
