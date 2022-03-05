@@ -37,7 +37,18 @@ class BayesOptimizer2D:
         starting_time, starting_duration, error_list = [], [], []
         starting_values = []
         if self.load_all:
-            pass
+            patients_dir = 'Definitive_Patients/'
+            filenames = next(os.walk(patients_dir), (None, None, []))[2]
+            for name in filenames:
+                if np.abs(np.float(name[:8]) - self.nu) < 10-6 and name[-10:-4] == self.grid :
+                    time, duration = np.float(name[10:16]), np.float(name[18:22])
+                    starting_time.append(time)
+                    starting_duration.append(duration)
+                    new_p = np.load(f'Definitive_Patients/{self.nu}_{time : .2f}_{duration : .2f}_{self.grid}.npy')
+                    new_error = self.error_function(new_p)
+                    error_list.append(new_error)
+            self.X = np.array([i for i in zip(starting_time, starting_duration)])
+            self.Y = np.array([[j] for j in error_list])
         self.k = max(self.k, len(error_list))
 
         if not self.load_all or len(error_list) == 0:
@@ -60,21 +71,22 @@ class BayesOptimizer2D:
                 new_error = self.error_function(new_p)
                 error_list.append(new_error)
 
-        self.X = np.array([i for i in starting_values])
-        self.Y = np.array([[j] for j in error_list])
+            self.X = np.array([i for i in starting_values])
+            self.Y = np.array([[j] for j in error_list])
         print(f'Starting optimization with {self.X.shape[0]} initial points')
         return
 
     def initialize_gp(self):
         self.kernel = GPy.kern.RBF(input_dim=2)
-        self.model = GPy.models.GPRegression(self.X, self.Y, self.kernel)
-        self.model['rbf.lengthscale'].constrain_bounded(1, 20, warning=False)
+        Xtr = self.X / np.array([10, 1])
+        self.model = GPy.models.GPRegression(Xtr, self.Y, self.kernel)
+        self.model['rbf.lengthscale'].constrain_bounded(1, 100, warning=False)
         self.model.optimize(messages=False)
-        if not self.load_all:
+        if not False:
             print(self.model)
             self.model.plot()
             plt.title(f"Start search on nu = {self.nu : .6f}")
-            plt.xlabel("Activation Time")
+            plt.xlabel("Activation Time / 10")
             plt.ylabel("Duration")
             pylab.show(block=True)
         return
@@ -93,7 +105,7 @@ class BayesOptimizer2D:
                               self.dur_min:self.dur_max:self.dur_min].reshape(2,-1).T
 
             print(niter - iterations, ' iterations remaining')
-            yp, vp = self.model.predict(self.prediction_grid)
+            yp, vp = self.model.predict(self.prediction_grid / np.array([10,1]))
             evaluated_data = acquisition_function(yp, vp)
 
             self.est_t, self.est_dur = self.prediction_grid[np.argmax(evaluated_data)]
@@ -113,20 +125,22 @@ class BayesOptimizer2D:
                 new_p = generate_last_350(nu2=self.nu, refined_grid=self.refined_grid,
                                               ICD_time=self.est_t, ICD_duration=self.est_dur)[0]
                 new_p = np.array(new_p)
-                np.save(f'Definitive_Patients/{self.nu}_{self.est_t[0] : .2f}_{self.est_dur[0] : .2f}_{self.grid}.npy', new_p)
-                #except:
-                #    np.save(f'Patients/new_patient{self.est_nu2}_{self.T}', new_p)
+                try:
+                    np.save(f'Definitive_Patients/{self.nu}_{self.est_t[0] : .2f}_{self.est_dur[0] : .2f}_{self.grid}.npy', new_p)
+                except:
+                    np.save(f'Definitive_Patients/{self.nu}_{self.est_t : .2f}_{self.est_dur : .2f}_{self.grid}.npy', new_p)
 
             new_error = self.error_function(new_p)
 
             #try:
-            self.X = np.append(self.X, [self.est_t[0], self.est_dur[0]], axis=0)
-            self.Y = np.append(self.Y, [new_error], axis=0)
+            self.X = np.append(self.X, [[self.est_t, self.est_dur]], axis=0)
+            self.Y = np.append(self.Y, [[new_error]], axis=0)
             #except:
             #    self.data_vec = np.append(self.data_vec, [([self.est_nu2], [new_error])], axis=0)
 
-            self.model = GPy.models.GPRegression(self.X, self.Y, self.kernel)
-            self.model['rbf.lengthscale'].constrain_bounded(1, 20, warning=False)
+            Xtr = self.X / np.array([10, 1])
+            self.model = GPy.models.GPRegression(Xtr, self.Y, self.kernel)
+            self.model['rbf.lengthscale'].constrain_bounded(1, 100, warning=False)
             self.model.optimize(messages=False)
 
         return
@@ -142,7 +156,7 @@ class BayesOptimizer2D:
 
         self.prediction_grid = np.mgrid[self.t_min:self.t_max:self.dur_min,
                                self.dur_min:self.dur_max:self.dur_min].reshape(2, -1).T
-        yp, vp = self.model.predict(self.prediction_grid)
+        yp, vp = self.model.predict(self.prediction_grid / np.array([10,1]))
 
         mask = np.ones(shape=self.prediction_grid.shape[0])
         for ind, values in enumerate(self.prediction_grid):
