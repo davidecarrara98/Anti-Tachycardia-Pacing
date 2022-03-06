@@ -25,7 +25,7 @@ class BayesOptimizer2D:
         self.k = k
         self.model, self.kernel = None, None
         self.niter, self.min_iter = niter, min_iter
-        self.prediction_grid = None
+        self.prediction_grid, self.final_pred = None, None
         self.load_all, self.refined_grid = load_all, refined_grid
         self.error_function = error_function
         self.grid = 'refine' if self.refined_grid == True else 'coarse'
@@ -100,14 +100,19 @@ class BayesOptimizer2D:
         niter = max(niter, self.min_iter)
 
         for iterations in range(niter):
+            print(niter - iterations, ' iterations remaining')
 
             self.prediction_grid = np.mgrid[self.t_min:self.t_max:self.dur_min,
-                              self.dur_min:self.dur_max:self.dur_min].reshape(2,-1).T
+                                   self.dur_min:self.dur_max:self.dur_min].reshape(2, -1).T
+            length = self.prediction_grid.shape[0]
+            predict_list = [self.prediction_grid[np.int32(i * length / 10):np.int32( (i+1) *length / 10), :]
+                            for i in range(10)]
+            yp, vp = np.empty(shape=(0, 1)), np.empty(shape=(0, 1))
+            for l in predict_list:
+                y, v = self.model.predict(l / np.array([10, 1]))
+                yp, vp = np.concatenate([yp, y]), np.concatenate([vp, v])
 
-            print(niter - iterations, ' iterations remaining')
-            yp, vp = self.model.predict(self.prediction_grid / np.array([10,1]))
             evaluated_data = acquisition_function(yp, vp)
-
             self.est_t, self.est_dur = self.prediction_grid[np.argmax(evaluated_data)]
             if self.est_t < self.t_min:
                 self.est_t = [self.t_min]
@@ -149,30 +154,66 @@ class BayesOptimizer2D:
 
         print(self.model)
         self.model.plot()
-        plt.title(f"End search on nu = {self.nu : .6f}")
-        plt.xlabel("Activation Time")
-        plt.ylabel("Duration")
-        pylab.show(block=True)
 
         self.prediction_grid = np.mgrid[self.t_min:self.t_max:self.dur_min,
                                self.dur_min:self.dur_max:self.dur_min].reshape(2, -1).T
-        yp, vp = self.model.predict(self.prediction_grid / np.array([10,1]))
+        length = self.prediction_grid.shape[0]
+        predict_list = [self.prediction_grid[np.int32(i * length / 10):np.int32((i + 1) * length / 10), :]
+                        for i in range(10)]
+        yp = np.empty(shape = (0,1))
+        for l in predict_list:
+            y, v = self.model.predict( l / np.array([10, 1]))
+            yp = np.concatenate([yp, y])
+
+
+        plt.title(f"End search on nu = {self.nu : .6f}")
+        plt.xlabel("Activation Time / 10")
+        plt.ylabel("Duration")
+        pylab.show(block=True)
+
 
         mask = np.ones(shape=self.prediction_grid.shape[0])
         for ind, values in enumerate(self.prediction_grid):
             if values[0] + values[1] > self.t_max:
                 mask[ind] = np.inf
 
-        final_pred = np.multiply(yp.squeeze(), mask)
-        self.est_t, self.est_dur = self.prediction_grid[np.argmin(final_pred)]
+        self.final_pred = np.multiply(yp.squeeze(), mask)
+        self.est_t, self.est_dur = self.prediction_grid[np.argmin(self.final_pred)]
         print(f'Chosen Activation Time is : {self.est_t : .6f}')
         print(f'Chosen Duration is : {self.est_dur: .6f}')
 
         return
+
+    def plot_3d(self):
+        t_vec = np.arange(self.t_min, self.t_max, self.dur_min * 10)
+        d_vec = np.arange(self.dur_min, self.dur_max, self.dur_min * 10)
+        t_vec, d_vec = np.meshgrid(t_vec, d_vec)
+        prediction_grid = np.mgrid[self.t_min:self.t_max:self.dur_min * 10, self.dur_min:self.dur_max:self.dur_min * 10].reshape(2, -1).T
+        yp, vp = self.model.predict(prediction_grid / np.array([10, 1]))
+
+        al = yp.reshape(1500, 200).T
+        plt.figure(figsize=(20, 20), dpi=64)
+        ax = plt.axes(projection='3d')
+        ax.view_init(elev=20, azim=-40)
+        ax.plot_surface(t_vec, d_vec, al, rstride=1, cstride=1, cmap='seismic',
+                        antialiased=False, edgecolor='none')
+        ax.set_title(f'MSE evaluated for nu = {self.nu : .6f}', fontsize=60)
+        ax.set_xlabel('Activation Time', fontsize=35, labelpad=30)
+        ax.set_ylabel('Duration', fontsize=35, labelpad=30)
+        ax.set_zlabel('MSE', fontsize=35, labelpad=30)
+        ax.set_zlim([0,10])
+        # Set tick font size
+        for label in (ax.get_xticklabels() + ax.get_yticklabels() + ax.get_zticklabels()):
+            label.set_fontsize(30)
+
+        mse = self.model.predict(np.array([[self.est_t/10, self.est_dur]]))
+        ax.scatter(xs=self.est_t, ys=self.est_dur, zs=mse, marker='*')
+        plt.show()
 
     def optimize(self):
         self.start_optimization()
         self.initialize_gp()
         self.optimize_gp()
         self.results()
+        self.plot_3d()
         return self.est_t, self.est_dur, self.model
