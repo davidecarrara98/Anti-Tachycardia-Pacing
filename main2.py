@@ -5,7 +5,7 @@ import sys
 sys.path.append("scripts")
 from utils2 import save_first_450, generate_last_350, load_nu
 
-patient = 3
+patient = 1
 nu2 = load_nu(error_type = "MSE")[patient]
 
 grid_name = "refine"
@@ -13,7 +13,9 @@ grid = True if grid_name == "refine" else False
 
 #save_first_450(nu2, refined_grid=grid)
 #500.470 - 7.275
-new_signal = generate_last_350(nu2, ICD_time=450, ICD_duration=0.005, refined_grid=grid)
+ICD_time, ICD_duration = 503.335, 4.35
+new_signal = generate_last_350(nu2, ICD_time=506.85, ICD_duration=4.5, refined_grid=grid)
+np.save(f'Definitive_Patients/{nu2}_{ICD_time : .2f}_{ICD_duration : .2f}_{grid_name}', new_signal)
 ori_signal = np.load("signals_3_patients.npy")
 
 # add save

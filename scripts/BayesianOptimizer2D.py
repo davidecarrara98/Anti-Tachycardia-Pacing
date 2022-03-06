@@ -201,7 +201,6 @@ class BayesOptimizer2D:
         ax.set_xlabel('Activation Time', fontsize=35, labelpad=30)
         ax.set_ylabel('Duration', fontsize=35, labelpad=30)
         ax.set_zlabel('MSE', fontsize=35, labelpad=30)
-        ax.set_zlim([0,10])
         # Set tick font size
         for label in (ax.get_xticklabels() + ax.get_yticklabels() + ax.get_zticklabels()):
             label.set_fontsize(30)
