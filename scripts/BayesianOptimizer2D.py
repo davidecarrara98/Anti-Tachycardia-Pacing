@@ -40,7 +40,7 @@ class BayesOptimizer2D:
             patients_dir = 'Definitive_Patients/'
             filenames = next(os.walk(patients_dir), (None, None, []))[2]
             for name in filenames:
-                if np.abs(np.float(name[:8]) - self.nu) < 10-6 and name[-10:-4] == self.grid :
+                if np.abs(np.float(name[:8]) - self.nu) < 10e-9 and name[-10:-4] == self.grid :
                     time, duration = np.float(name[10:16]), np.float(name[18:22])
                     starting_time.append(time)
                     starting_duration.append(duration)

@@ -11,7 +11,7 @@ nu2 = load_nu(error_type = "MSE")[patient]
 grid_name = "refine"
 grid = True if grid_name == "refine" else False
 
-#save_first_450(nu2, refined_grid=grid)
+save_first_450(nu2, refined_grid=grid)
 #500.470 - 7.275
 ICD_time, ICD_duration = 503.335, 4.35
 new_signal = generate_last_350(nu2, ICD_time=506.85, ICD_duration=4.5, refined_grid=grid)
