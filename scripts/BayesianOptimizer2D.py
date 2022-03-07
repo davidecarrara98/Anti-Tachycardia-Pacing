@@ -45,7 +45,7 @@ class BayesOptimizer2D:
                     starting_time.append(time)
                     starting_duration.append(duration)
                     new_p = np.load(f'Definitive_Patients/{self.nu}_{time : .2f}_{duration : .2f}_{self.grid}.npy')
-                    new_error = self.error_function(new_p)
+                    new_error = self.error_function(new_p, duration)
                     error_list.append(new_error)
             self.X = np.array([i for i in zip(starting_time, starting_duration)])
             self.Y = np.array([[j] for j in error_list])
@@ -68,7 +68,7 @@ class BayesOptimizer2D:
                     new_p = np.array(new_p)
                     np.save(f'Definitive_Patients/{self.nu}_{time : .2f}_{duration : .2f}_{self.grid}', new_p)
 
-                new_error = self.error_function(new_p)
+                new_error = self.error_function(new_p, duration)
                 error_list.append(new_error)
 
             self.X = np.array([i for i in starting_values])
@@ -135,7 +135,7 @@ class BayesOptimizer2D:
                 except:
                     np.save(f'Definitive_Patients/{self.nu}_{self.est_t : .2f}_{self.est_dur : .2f}_{self.grid}.npy', new_p)
 
-            new_error = self.error_function(new_p)
+            new_error = self.error_function(new_p, self.est_dur)
 
             #try:
             self.X = np.append(self.X, [[self.est_t, self.est_dur]], axis=0)
