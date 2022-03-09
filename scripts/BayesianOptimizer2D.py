@@ -4,9 +4,12 @@ import os
 from matplotlib import pylab
 import numpy as np
 import GPy
-from utils2 import l2_int, generate_last_350
+from utils2 import l2_int, generate_last_350, custom_loss
 
-def acquisition_function(yp, vp, beta=2):
+def acquisition_function(yp, vp, beta=2, length=0):
+    focus = True if length > 60 else False
+    if focus:
+        beta = 0.1
     return - yp + beta * np.sqrt(vp)
 
 def cartesian_product(x, y):
@@ -40,11 +43,19 @@ class BayesOptimizer2D:
             patients_dir = 'Definitive_Patients/'
             filenames = next(os.walk(patients_dir), (None, None, []))[2]
             for name in filenames:
-                if np.abs(np.float(name[:8]) - self.nu) < 10e-9 and name[-10:-4] == self.grid :
-                    time, duration = np.float(name[10:16]), np.float(name[18:22])
+                spl = name.split('_')
+                spl = [l.strip() for l in spl]
+                if np.abs(np.float(spl[0]) - self.nu) < 10e-9 and spl[3][:-4] == self.grid :
+                    time, duration = np.float(spl[1]), np.float(spl[2])
+                    try:
+                        new_p = np.load(f'Definitive_Patients/{self.nu}_{time : .3f}_{duration : .3f}_{self.grid}.npy')
+                    except FileNotFoundError:
+                        new_p = np.load(f'Definitive_Patients/{self.nu}_{time : .2f}_{duration : .2f}_{self.grid}.npy')
+                    if len(new_p.shape) == 3:
+                        continue
+
                     starting_time.append(time)
                     starting_duration.append(duration)
-                    new_p = np.load(f'Definitive_Patients/{self.nu}_{time : .2f}_{duration : .2f}_{self.grid}.npy')
                     new_error = self.error_function(new_p, duration)
                     error_list.append(new_error)
             self.X = np.array([i for i in zip(starting_time, starting_duration)])
@@ -105,14 +116,14 @@ class BayesOptimizer2D:
             self.prediction_grid = np.mgrid[self.t_min:self.t_max:self.dur_min,
                                    self.dur_min:self.dur_max:self.dur_min].reshape(2, -1).T
             length = self.prediction_grid.shape[0]
-            predict_list = [self.prediction_grid[np.int32(i * length / 10):np.int32( (i+1) *length / 10), :]
-                            for i in range(10)]
+            predict_list = [self.prediction_grid[np.int32(i * length / 20):np.int32( (i+1) *length / 20), :]
+                            for i in range(20)]
             yp, vp = np.empty(shape=(0, 1)), np.empty(shape=(0, 1))
             for l in predict_list:
                 y, v = self.model.predict(l / np.array([10, 1]))
                 yp, vp = np.concatenate([yp, y]), np.concatenate([vp, v])
 
-            evaluated_data = acquisition_function(yp, vp)
+            evaluated_data = acquisition_function(yp, vp, self.model.X.shape[0])
             self.est_t, self.est_dur = self.prediction_grid[np.argmax(evaluated_data)]
             if self.est_t < self.t_min:
                 self.est_t = [self.t_min]
@@ -126,6 +137,7 @@ class BayesOptimizer2D:
             try:
                 new_p = np.load(f'Definitive_Patients/{self.nu}_{self.est_t : .2f}_{self.est_dur : .2f}_{self.grid}.npy')
 
+
             except:
                 new_p = generate_last_350(nu2=self.nu, refined_grid=self.refined_grid,
                                               ICD_time=self.est_t, ICD_duration=self.est_dur)[0]
@@ -135,6 +147,8 @@ class BayesOptimizer2D:
                 except:
                     np.save(f'Definitive_Patients/{self.nu}_{self.est_t : .2f}_{self.est_dur : .2f}_{self.grid}.npy', new_p)
 
+            if len(new_p.shape) == 3:
+                continue
             new_error = self.error_function(new_p, self.est_dur)
 
             #try:
@@ -158,8 +172,8 @@ class BayesOptimizer2D:
         self.prediction_grid = np.mgrid[self.t_min:self.t_max:self.dur_min,
                                self.dur_min:self.dur_max:self.dur_min].reshape(2, -1).T
         length = self.prediction_grid.shape[0]
-        predict_list = [self.prediction_grid[np.int32(i * length / 10):np.int32((i + 1) * length / 10), :]
-                        for i in range(10)]
+        predict_list = [self.prediction_grid[np.int32(i * length / 20):np.int32((i + 1) * length / 20), :]
+                        for i in range(20)]
         yp = np.empty(shape = (0,1))
         for l in predict_list:
             y, v = self.model.predict( l / np.array([10, 1]))
@@ -206,7 +220,6 @@ class BayesOptimizer2D:
             label.set_fontsize(30)
 
         mse = self.model.predict(np.array([[self.est_t/10, self.est_dur]]))
-        ax.scatter(xs=self.est_t, ys=self.est_dur, zs=mse, marker='*')
         plt.show()
 
     def optimize(self):

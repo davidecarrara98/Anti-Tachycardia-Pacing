@@ -318,9 +318,9 @@ def generate_last_350(nu2, ICD_time=460, ICD_duration=5, refined_grid=True, pati
     return signals
 
 def l2_int(curve, duration = None):
-    integral = np.linalg.norm(curve[0,600:])/200
+    integral = np.linalg.norm(curve[0,600:])
     return integral
 
 def custom_loss(curve, duration):
-    integral = 10 * np.linalg.norm(curve[0,600:]) + duration
+    integral =  np.linalg.norm(curve[0,600:]) + 4 * np.power(duration/10,2)
     return integral
