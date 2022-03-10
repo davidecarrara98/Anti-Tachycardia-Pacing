@@ -6,11 +6,43 @@ import numpy as np
 import GPy
 from utils2 import l2_int, generate_last_350, custom_loss
 
-def acquisition_function(yp, vp, beta=2, length=0):
-    focus = True if length > 60 else False
-    if focus:
-        beta = 0.1
+def acquisition_function(yp, vp, beta=2):
     return - yp + beta * np.sqrt(vp)
+
+def general_acquisition(yp, vp, prediction_grid, length):
+    if length > 50:
+        inds = np.where(np.abs(yp) < np.quantile(np.abs(yp), 0.03))
+        vals = prediction_grid[inds[0]]
+        fin_ind = np.where(vals[:, 1] == np.min(vals[:, 1]))
+        chosen = vals[fin_ind][0]
+        est_t, est_dur = chosen
+
+    elif length > 30:
+        inds = np.where(np.abs(yp) < np.quantile(np.abs(yp), 0.01))
+        vals = prediction_grid[inds[0]]
+        fin_ind = np.where(vals[:, 1] == np.min(vals[:, 1]))
+        chosen = vals[fin_ind][0]
+        est_t, est_dur = chosen
+
+    else:
+        evaluated_data = acquisition_function(yp, vp, length)
+        est_t, est_dur = prediction_grid[np.argmax(evaluated_data)]
+
+    return est_t, est_dur
+
+def check_feasibility(est_t, est_dur, t_min, t_max, dur_min, dur_max):
+    if est_t < t_min:
+        est_t = [t_min]
+    if est_t > t_max:
+        est_t = [t_max]
+    if est_dur < dur_min:
+        est_dur = [dur_min]
+    if est_dur > dur_max:
+        est_dur = [dur_max]
+
+    return est_t, est_dur
+
+
 
 def cartesian_product(x, y):
     return np.transpose([np.tile(x, len(y)),
@@ -93,7 +125,8 @@ class BayesOptimizer2D:
         self.model = GPy.models.GPRegression(Xtr, self.Y, self.kernel)
         self.model['rbf.lengthscale'].constrain_bounded(1, 100, warning=False)
         self.model.optimize(messages=False)
-        if not False:
+        print_flag = False
+        if print_flag:
             print(self.model)
             self.model.plot()
             plt.title(f"Start search on nu = {self.nu : .6f}")
@@ -123,16 +156,9 @@ class BayesOptimizer2D:
                 y, v = self.model.predict(l / np.array([10, 1]))
                 yp, vp = np.concatenate([yp, y]), np.concatenate([vp, v])
 
-            evaluated_data = acquisition_function(yp, vp, self.model.X.shape[0])
-            self.est_t, self.est_dur = self.prediction_grid[np.argmax(evaluated_data)]
-            if self.est_t < self.t_min:
-                self.est_t = [self.t_min]
-            if self.est_t > self.t_max:
-                self.est_t = [self.t_max]
-            if self.est_dur < self.dur_min:
-                self.est_dur = [self.dur_min]
-            if self.est_dur > self.dur_max:
-                self.est_dur = [self.dur_max]
+            self.est_t, self.est_dur = general_acquisition(yp, vp, self.prediction_grid, self.model.X.shape[0])
+            self.est_t, self.est_dur = check_feasibility(self.est_t, self.est_dur,
+                                                         self.t_min, self.t_max, self.dur_min, self.dur_max)
 
             try:
                 new_p = np.load(f'Definitive_Patients/{self.nu}_{self.est_t : .2f}_{self.est_dur : .2f}_{self.grid}.npy')
@@ -212,9 +238,10 @@ class BayesOptimizer2D:
         ax.plot_surface(t_vec, d_vec, al, rstride=1, cstride=1, cmap='seismic',
                         antialiased=False, edgecolor='none')
         ax.set_title(f'MSE evaluated for nu = {self.nu : .6f}', fontsize=60)
+        ax.tick_params(axis='z', which='major', pad=15)
         ax.set_xlabel('Activation Time', fontsize=35, labelpad=30)
         ax.set_ylabel('Duration', fontsize=35, labelpad=30)
-        ax.set_zlabel('MSE', fontsize=35, labelpad=30)
+        ax.set_zlabel('MSE', fontsize=35, labelpad=50)
         # Set tick font size
         for label in (ax.get_xticklabels() + ax.get_yticklabels() + ax.get_zticklabels()):
             label.set_fontsize(30)
