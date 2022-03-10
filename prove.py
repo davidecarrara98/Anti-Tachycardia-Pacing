@@ -9,7 +9,7 @@ from utils2 import load_nu, custom_loss, l2_int
 
 patient = 1
 nu2 = load_nu(error_type = "MSE")[patient]
-opt = BayesOptimizer2D(nu=nu2, refined_grid=True, niter=40, load_all=True, min_iter=5,
+opt = BayesOptimizer2D(nu=nu2, refined_grid=True, niter=0, load_all=True, min_iter=0,
                        error_function=l2_int)
 t, dur, mod = opt.optimize()
 

@@ -5,7 +5,7 @@ import sys
 sys.path.append("scripts")
 from utils2 import save_first_450, generate_last_350, load_nu, l2_int
 
-patient1 = { 'ICD_time' : 482.76, 'ICD_duration' : 1.415 }
+patient1 = { 'ICD_time' : 485.9, 'ICD_duration' : 1.075, 'quantile' : 0.03, 'proposed' : [475.55, 7.3] }
 patient2 = { 'ICD_time' : 505.75, 'ICD_duration' : 4.105 }
 patient3 = { 'ICD_time' : 505.75, 'ICD_duration' : 4.11, 'quantile' : 0.03, 'proposed' : [501.55, 7.12] }
 
@@ -19,6 +19,7 @@ grid = True if grid_name == "refine" else False
 
 #save_first_450(nu2, refined_grid=grid)
 ICD_time, ICD_duration = patients_list[patient-1]['ICD_time'], patients_list[patient-1]['ICD_duration']
+
 
 try:
     new_signal = np.load(f'Definitive_Patients/{nu2}_{ICD_time : .3f}_{ICD_duration : .3f}_{grid_name}')
