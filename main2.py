@@ -11,14 +11,14 @@ patient3 = { 'ICD_time' : 505.75, 'ICD_duration' : 4.11, 'quantile' : 0.03, 'pro
 
 patients_list = [patient1, patient2, patient3]
 
-patient = 1
+patient = 3
 nu2 = load_nu(error_type = "MSE")[patient]
 
 grid_name = "refine"
 grid = True if grid_name == "refine" else False
 
 #save_first_450(nu2, refined_grid=grid)
-ICD_time, ICD_duration = 482.76 ,   1.415#patients_list[patient-1]['ICD_time'], patients_list[patient-1]['ICD_duration']
+ICD_time, ICD_duration = patients_list[patient-1]['ICD_time'], patients_list[patient-1]['ICD_duration']
 
 try:
     new_signal = np.load(f'Definitive_Patients/{nu2}_{ICD_time : .3f}_{ICD_duration : .3f}_{grid_name}')
