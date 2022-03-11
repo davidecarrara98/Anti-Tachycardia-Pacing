@@ -6,26 +6,26 @@ sys.path.append("scripts")
 from utils2 import save_first_450, generate_last_350, load_nu, l2_int
 
 patient1 = { 'ICD_time' : 485.9, 'ICD_duration' : 1.075, 'quantile' : 0.03, 'proposed' : [475.55, 7.3] }
-patient2 = { 'ICD_time' : 505.75, 'ICD_duration' : 4.105 }
+patient2 = { 'ICD_time' : 493.05, 'ICD_duration' : 1.285 }
 patient3 = { 'ICD_time' : 505.75, 'ICD_duration' : 4.11, 'quantile' : 0.03, 'proposed' : [501.55, 7.12] }
 
 patients_list = [patient1, patient2, patient3]
 
-patient = 3
+patient = 2
 nu2 = load_nu(error_type = "MSE")[patient]
 
 grid_name = "refine"
 grid = True if grid_name == "refine" else False
 
 #save_first_450(nu2, refined_grid=grid)
-ICD_time, ICD_duration = patients_list[patient-1]['ICD_time'], patients_list[patient-1]['ICD_duration']
+ICD_time, ICD_duration = 493.05, 1.285#patients_list[patient-1]['ICD_time'], patients_list[patient-1]['ICD_duration']
 
 
 try:
     new_signal = np.load(f'Definitive_Patients/{nu2}_{ICD_time : .3f}_{ICD_duration : .3f}_{grid_name}')
 except:
     new_signal = generate_last_350(nu2, ICD_time=ICD_time, ICD_duration=ICD_duration, refined_grid=grid)
-    np.save(f'Definitive_Patients/{nu2}_{ICD_time : .2f}_{ICD_duration : .2f}_{grid_name}', new_signal[0])
+    #np.save(f'Definitive_Patients/{nu2}_{ICD_time : .2f}_{ICD_duration : .2f}_{grid_name}', new_signal[0])
 ori_signal = np.load("signals_3_patients.npy")
 
 plt.figure()

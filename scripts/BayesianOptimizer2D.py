@@ -42,12 +42,9 @@ def check_feasibility(est_t, est_dur, t_min, t_max, dur_min, dur_max):
 
     return est_t, est_dur
 
-
-
 def cartesian_product(x, y):
     return np.transpose([np.tile(x, len(y)),
                             np.repeat(y, len(x))])
-
 
 class BayesOptimizer2D:
 
