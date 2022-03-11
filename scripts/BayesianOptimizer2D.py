@@ -4,25 +4,25 @@ import os
 from matplotlib import pylab
 import numpy as np
 import GPy
-from utils2 import l2_int, generate_last_350, custom_loss
+from utils2 import l2_int, generate_last_350
 
 def acquisition_function(yp, vp, beta=2):
     return - yp + beta * np.sqrt(vp)
 
 def general_acquisition(yp, vp, prediction_grid, length):
-    if length > 50:
-        inds = np.where(np.abs(yp) < np.quantile(np.abs(yp), 0.03))
+
+    def check_quantile(quantile, yp=yp, prediction_grid=prediction_grid):
+        inds = np.where(np.abs(yp) < np.quantile(np.abs(yp), quantile))
         vals = prediction_grid[inds[0]]
         fin_ind = np.where(vals[:, 1] == np.min(vals[:, 1]))
         chosen = vals[fin_ind][0]
-        est_t, est_dur = chosen
+        return chosen
+
+    if length > 50:
+        est_t, est_dur = check_quantile(quantile=0.01)
 
     elif length > 30:
-        inds = np.where(np.abs(yp) < np.quantile(np.abs(yp), 0.01))
-        vals = prediction_grid[inds[0]]
-        fin_ind = np.where(vals[:, 1] == np.min(vals[:, 1]))
-        chosen = vals[fin_ind][0]
-        est_t, est_dur = chosen
+        est_t, est_dur = check_quantile(quantile=0.03)
 
     else:
         evaluated_data = acquisition_function(yp, vp, length)
@@ -70,10 +70,14 @@ class BayesOptimizer2D:
 
     def start_optimization(self):
         starting_time, starting_duration, error_list = [], [], []
-        starting_values = []
+
         if self.load_all:
+
+            # Load all available patients
             patients_dir = 'Definitive_Patients/'
             filenames = next(os.walk(patients_dir), (None, None, []))[2]
+
+            # Cycle over patients, compute mse, store act. time and duration
             for name in filenames:
                 spl = name.split('_')
                 spl = [l.strip() for l in spl]
@@ -90,56 +94,60 @@ class BayesOptimizer2D:
                     starting_duration.append(duration)
                     new_error = self.error_function(new_p, duration)
                     error_list.append(new_error)
+
+            # Create training dataset for Gaussian Process
             self.X = np.array([i for i in zip(starting_time, starting_duration)])
             self.Y = np.array([[j] for j in error_list])
+
+        # Number of datapoints already used
         self.k = max(self.k, len(error_list))
 
         if not self.load_all or len(error_list) == 0:
+
+            # Generate some equispaced starting points
             starting_time = np.linspace(self.t_min, self.t_max, int(self.k/2))
             starting_duration = np.array([2.5, 7.5])
             starting_values = cartesian_product(starting_time, starting_duration)
 
             for values in starting_values:
+                # Reject values out of boundaries
                 if values[0] + values[1] > self.t_max : values[0] = self.t_max - values[1]
                 time, duration = values[0], values[1]
-                try:
-                    new_p = np.load(f'Definitive_Patients/{self.nu}_{time : .2f}_{duration : .2f}_{self.grid}.npy')
 
-                except:
-                    new_p = generate_last_350(nu2=self.nu, refined_grid=self.refined_grid,
+                # Generate curve of the patient
+                new_p = generate_last_350(nu2=self.nu, refined_grid=self.refined_grid,
                                               ICD_time=time, ICD_duration=duration)[0]
-                    new_p = np.array(new_p)
-                    np.save(f'Definitive_Patients/{self.nu}_{time : .2f}_{duration : .2f}_{self.grid}', new_p)
+                new_p = np.array(new_p)
+                np.save(f'Definitive_Patients/{self.nu}_{time : .2f}_{duration : .2f}_{self.grid}', new_p)
 
+                # Compute and store error for new patient
                 new_error = self.error_function(new_p, duration)
                 error_list.append(new_error)
 
             self.X = np.array([i for i in starting_values])
             self.Y = np.array([[j] for j in error_list])
+
         print(f'Starting optimization with {self.X.shape[0]} initial points')
         return
 
     def initialize_gp(self):
+        # Crate GP
         self.kernel = GPy.kern.RBF(input_dim=2)
+        # X is divided by 10 to have similar covariances among time, duration
         Xtr = self.X / np.array([10, 1])
         self.model = GPy.models.GPRegression(Xtr, self.Y, self.kernel)
         self.model['rbf.lengthscale'].constrain_bounded(1, 100, warning=False)
         self.model.optimize(messages=False)
-        print_flag = False
+
+        print_flag = False #True for plotting model before training
         if print_flag:
-            print(self.model)
-            self.model.plot()
-            plt.title(f"Start search on nu = {self.nu : .6f}")
-            plt.xlabel("Activation Time / 10")
-            plt.ylabel("Duration")
-            pylab.show(block=True)
+            self.plot_2d()
+
         return
 
     def optimize_gp(self):
 
-        #nu_range = self.nu_max - self.nu_min
-        #dnu = nu_range / self.npoints
-
+        # Choose remaining number of iteration
         niter = self.niter - self.k
         niter = max(niter, self.min_iter)
 
@@ -177,11 +185,8 @@ class BayesOptimizer2D:
                 continue
             new_error = self.error_function(new_p, self.est_dur)
 
-            #try:
             self.X = np.append(self.X, [[self.est_t, self.est_dur]], axis=0)
             self.Y = np.append(self.Y, [[new_error]], axis=0)
-            #except:
-            #    self.data_vec = np.append(self.data_vec, [([self.est_nu2], [new_error])], axis=0)
 
             Xtr = self.X / np.array([10, 1])
             self.model = GPy.models.GPRegression(Xtr, self.Y, self.kernel)
@@ -190,33 +195,43 @@ class BayesOptimizer2D:
 
         return
 
-    def results(self):
+    def plot_2d(self):
 
         print(self.model)
         self.model.plot()
 
-        self.prediction_grid = np.mgrid[self.t_min:self.t_max:self.dur_min,
-                               self.dur_min:self.dur_max:self.dur_min].reshape(2, -1).T
-        length = self.prediction_grid.shape[0]
-        predict_list = [self.prediction_grid[np.int32(i * length / 20):np.int32((i + 1) * length / 20), :]
-                        for i in range(20)]
-        yp = np.empty(shape = (0,1))
-        for l in predict_list:
-            y, v = self.model.predict( l / np.array([10, 1]))
-            yp = np.concatenate([yp, y])
-
-
+        # Legend
         plt.title(f"End search on nu = {self.nu : .6f}")
         plt.xlabel("Activation Time / 10")
         plt.ylabel("Duration")
         pylab.show(block=True)
 
+        return
 
+    def results(self):
+
+        self.plot_2d()
+
+        # Create prediction grid, divide it in subgrids for efficiency
+        self.prediction_grid = np.mgrid[self.t_min:self.t_max:self.dur_min,
+                               self.dur_min:self.dur_max:self.dur_min].reshape(2, -1).T
+        length = self.prediction_grid.shape[0]
+        predict_list = [self.prediction_grid[np.int32(i * length / 20):np.int32((i + 1) * length / 20), :]
+                        for i in range(20)]
+
+        # Use subgrid for predictions and join outputs
+        yp = np.empty(shape = (0,1))
+        for l in predict_list:
+            y, v = self.model.predict( l / np.array([10, 1]))
+            yp = np.concatenate([yp, y])
+
+        # Create mask to identify values out of range
         mask = np.ones(shape=self.prediction_grid.shape[0])
         for ind, values in enumerate(self.prediction_grid):
             if values[0] + values[1] > self.t_max:
                 mask[ind] = np.inf
 
+        # Mask predicted elements and return the best one
         self.final_pred = np.multiply(yp.squeeze(), mask)
         self.est_t, self.est_dur = self.prediction_grid[np.argmin(self.final_pred)]
         print(f'Chosen Activation Time is : {self.est_t : .6f}')
@@ -225,18 +240,25 @@ class BayesOptimizer2D:
         return
 
     def plot_3d(self):
-        t_vec = np.arange(self.t_min, self.t_max, self.dur_min * 10)
-        d_vec = np.arange(self.dur_min, self.dur_max, self.dur_min * 10)
-        t_vec, d_vec = np.meshgrid(t_vec, d_vec)
+
+        # Create prediction grid and predict
         prediction_grid = np.mgrid[self.t_min:self.t_max:self.dur_min * 10, self.dur_min:self.dur_max:self.dur_min * 10].reshape(2, -1).T
         yp, vp = self.model.predict(prediction_grid / np.array([10, 1]))
 
+        # Create Plot Grid
+        t_vec = np.arange(self.t_min, self.t_max, self.dur_min * 10)
+        d_vec = np.arange(self.dur_min, self.dur_max, self.dur_min * 10)
+        t_vec, d_vec = np.meshgrid(t_vec, d_vec)
+
+        # Reshape predictions and plot
         al = yp.reshape(1500, 200).T
         plt.figure(figsize=(20, 20), dpi=64)
         ax = plt.axes(projection='3d')
         ax.view_init(elev=20, azim=-40)
         ax.plot_surface(t_vec, d_vec, al, rstride=1, cstride=1, cmap='seismic',
                         antialiased=False, edgecolor='none')
+
+        #Set Title and Axis
         ax.set_title(f'MSE evaluated for nu = {self.nu : .6f}', fontsize=60)
         ax.tick_params(axis='z', which='major', pad=15)
         ax.set_xlabel('Activation Time', fontsize=35, labelpad=30)
@@ -246,7 +268,6 @@ class BayesOptimizer2D:
         for label in (ax.get_xticklabels() + ax.get_yticklabels() + ax.get_zticklabels()):
             label.set_fontsize(30)
 
-        mse = self.model.predict(np.array([[self.est_t/10, self.est_dur]]))
         plt.show()
 
     def optimize(self):
