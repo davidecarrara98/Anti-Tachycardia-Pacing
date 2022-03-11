@@ -5,12 +5,12 @@ import numpy as np
 from BayesianOptimizer2D import BayesOptimizer2D
 
 sys.path.append("scripts")
-from utils2 import load_nu, custom_loss, l2_int
+from utils2 import load_nu, custom_loss, l2_int, l2_int_restricted
 
-patient = 2
+patient = 3
 nu2 = load_nu(error_type = "MSE")[patient]
-opt = BayesOptimizer2D(nu=nu2, refined_grid=True, niter=5, load_all=True, min_iter=20,
-                       error_function=l2_int)
+opt = BayesOptimizer2D(nu=nu2, refined_grid=True, niter=6, load_all=False, min_iter=4,
+                       error_function=l2_int_restricted)
 t, dur, mod = opt.optimize()
 
 inds = np.where(np.abs(opt.final_pred) < np.quantile(np.abs(opt.final_pred), 0.03))
