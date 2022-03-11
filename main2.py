@@ -6,12 +6,12 @@ sys.path.append("scripts")
 from utils2 import save_first_450, generate_last_350, load_nu, l2_int
 
 patient1 = { 'ICD_time' : 485.9, 'ICD_duration' : 1.075, 'quantile' : 0.03, 'proposed' : [475.55, 7.3] }
-patient2 = { 'ICD_time' : 493.05, 'ICD_duration' : 1.285 }
+patient2 = { 'ICD_time' : 493.05, 'ICD_duration' : 1.285, 'data' : 62 }
 patient3 = { 'ICD_time' : 505.75, 'ICD_duration' : 4.11, 'quantile' : 0.03, 'proposed' : [501.55, 7.12] }
 
 patients_list = [patient1, patient2, patient3]
 
-patient = 2
+patient = 3
 nu2 = load_nu(error_type = "MSE")[patient]
 
 grid_name = "refine"

@@ -328,3 +328,7 @@ def custom_loss(curve, duration):
 def l2_int_restricted(curve, duration = None):
     integral = np.linalg.norm(curve[0,700:])/100
     return integral
+
+def l2_int_restricted(curve, duration = None):
+    integral = np.linalg.norm(curve[0,700:])/100
+    return integral
