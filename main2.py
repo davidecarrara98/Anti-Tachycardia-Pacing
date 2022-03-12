@@ -5,9 +5,9 @@ import sys
 sys.path.append("scripts")
 from utils2 import save_first_450, generate_last_350, load_nu, l2_int
 
-patient1 = { 'ICD_time' : 485.9, 'ICD_duration' : 1.075, 'quantile' : 0.03, 'proposed' : [475.55, 7.3] }
+patient1 = { 'ICD_time' : 485.9, 'ICD_duration' : 1.075 }
 patient2 = { 'ICD_time' : 493.05, 'ICD_duration' : 1.285, 'data' : 62 }
-patient3 = { 'ICD_time' : 505.75, 'ICD_duration' : 4.11, 'quantile' : 0.03, 'proposed' : [501.55, 7.12] }
+patient3 = { 'ICD_time' : 504.1, 'ICD_duration' : 2.4, 'data' : 62}
 
 patients_list = [patient1, patient2, patient3]
 
@@ -18,7 +18,7 @@ grid_name = "refine"
 grid = True if grid_name == "refine" else False
 
 #save_first_450(nu2, refined_grid=grid)
-ICD_time, ICD_duration = 493.05, 1.285#patients_list[patient-1]['ICD_time'], patients_list[patient-1]['ICD_duration']
+ICD_time, ICD_duration = 504.1  ,   2.4 #patients_list[patient-1]['ICD_time'], patients_list[patient-1]['ICD_duration']
 
 
 try:
