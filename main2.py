@@ -5,7 +5,7 @@ import sys
 sys.path.append("scripts")
 from utils2 import save_first_450, generate_last_350, load_nu, l2_int
 
-patient1 = { 'ICD_time' : 485.9, 'ICD_duration' : 1.075 }
+patient1 = { 'ICD_time' : 480.97, 'ICD_duration' : 1.15 }
 patient2 = { 'ICD_time' : 493.05, 'ICD_duration' : 1.285, 'data' : 62 }
 patient3 = { 'ICD_time' : 504.1, 'ICD_duration' : 2.4, 'data' : 62}
 

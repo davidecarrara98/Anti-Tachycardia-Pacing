@@ -19,7 +19,7 @@ def general_acquisition(yp, vp, prediction_grid, length):
         return chosen
 
     if length > 50:
-        est_t, est_dur = check_quantile(quantile=0.01)
+        est_t, est_dur = check_quantile(quantile=0.03)
 
     elif length > 30:
         est_t, est_dur = check_quantile(quantile=0.03)
@@ -230,7 +230,14 @@ class BayesOptimizer2D:
 
         # Mask predicted elements and return the best one
         self.final_pred = np.multiply(yp.squeeze(), mask)
-        self.est_t, self.est_dur = self.prediction_grid[np.argmin(self.final_pred)]
+
+        inds = np.where(np.abs(self.final_pred) < np.quantile(np.abs(self.final_pred), 0.03))
+        vals = self.prediction_grid[inds[0]]
+        fin_ind = np.where(vals[:, 1] == np.min(vals[:, 1]))
+        chosen = vals[fin_ind][0]
+
+        self.est_t, self.est_dur = chosen
+
         print(f'Chosen Activation Time is : {self.est_t : .6f}')
         print(f'Chosen Duration is : {self.est_dur: .6f}')
 
