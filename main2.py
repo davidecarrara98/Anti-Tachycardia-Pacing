@@ -5,20 +5,20 @@ import sys
 sys.path.append("scripts")
 from utils2 import save_first_450, generate_last_350, load_nu, l2_int
 
-patient1 = { 'ICD_time' : 480.97, 'ICD_duration' : 1.15 }
-patient2 = { 'ICD_time' : 493.05, 'ICD_duration' : 1.285, 'data' : 62 }
-patient3 = { 'ICD_time' : 504.1, 'ICD_duration' : 2.4, 'data' : 62}
+patient1 = { 'ICD_time' : 480.97, 'ICD_duration' : 1.15 } # 478.945000 - 0.765000
+patient2 = { 'ICD_time' : 493.05, 'ICD_duration' : 1.285, 'data' : 62 } # 493.000000 - 0.805000
+patient3 = { 'ICD_time' : 504.1, 'ICD_duration' : 2.4, 'data' : 62} # 505.835000 - 1.925000
 
 patients_list = [patient1, patient2, patient3]
 
-patient = 3
+patient = 1
 nu2 = load_nu(error_type = "MSE")[patient]
 
 grid_name = "refine"
 grid = True if grid_name == "refine" else False
 
 #save_first_450(nu2, refined_grid=grid)
-ICD_time, ICD_duration = 504.1  ,   2.4 #patients_list[patient-1]['ICD_time'], patients_list[patient-1]['ICD_duration']
+ICD_time, ICD_duration = 478.945000  ,  0.765000 #patients_list[patient-1]['ICD_time'], patients_list[patient-1]['ICD_duration']
 
 
 try:

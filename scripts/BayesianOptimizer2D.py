@@ -19,7 +19,7 @@ def general_acquisition(yp, vp, prediction_grid, length):
         return chosen
 
     if length > 50:
-        est_t, est_dur = check_quantile(quantile=0.03)
+        est_t, est_dur = check_quantile(quantile=0.01)
 
     elif length > 30:
         est_t, est_dur = check_quantile(quantile=0.03)
@@ -49,7 +49,7 @@ def cartesian_product(x, y):
 class BayesOptimizer2D:
 
     def __init__(self, nu, name_patient = "Unkown", niter=30, k=4, load_all=False,
-                 error_function=l2_int, min_iter=4, refined_grid=False):
+                 error_function=l2_int, min_iter=4, refined_grid=False, parameter=None):
         self.nu, self.name_patient = nu, name_patient
         self.X, self.Y = None, None
         self.est_t, self.est_dur = None, None
@@ -63,6 +63,7 @@ class BayesOptimizer2D:
         self.grid = 'refine' if self.refined_grid == True else 'coarse'
         self.dur_min = 0.005 if self.refined_grid == True else 0.01
         self.dur_max = 10
+        self.parameter = parameter
 
 
     def start_optimization(self):
@@ -89,7 +90,8 @@ class BayesOptimizer2D:
 
                     starting_time.append(time)
                     starting_duration.append(duration)
-                    new_error = self.error_function(new_p, duration)
+                    new_error = self.error_function(new_p, duration) if self.parameter is None \
+                        else self.error_function(new_p, duration, alpha=self.parameter)
                     error_list.append(new_error)
 
             # Create training dataset for Gaussian Process
@@ -118,7 +120,8 @@ class BayesOptimizer2D:
                 np.save(f'Definitive_Patients/{self.nu}_{time : .2f}_{duration : .2f}_{self.grid}', new_p)
 
                 # Compute and store error for new patient
-                new_error = self.error_function(new_p, duration)
+                new_error = self.error_function(new_p, duration) if self.parameter is None \
+                    else self.error_function(new_p, duration, alpha=self.parameter)
                 error_list.append(new_error)
 
             self.X = np.array([i for i in starting_values])
@@ -132,6 +135,11 @@ class BayesOptimizer2D:
         self.kernel = GPy.kern.RBF(input_dim=2)
         # X is divided by 10 to have similar covariances among time, duration
         Xtr = self.X / np.array([10, 1])
+        try:
+            assert self.Y.ndim == 2
+        except AssertionError:
+            self.Y = self.Y.squeeze(axis=-1)
+
         self.model = GPy.models.GPRegression(Xtr, self.Y, self.kernel)
         self.model['rbf.lengthscale'].constrain_bounded(1, 100, warning=False)
         self.model.optimize(messages=False)
@@ -180,7 +188,8 @@ class BayesOptimizer2D:
 
             if len(new_p.shape) == 3:
                 continue
-            new_error = self.error_function(new_p, self.est_dur)
+            new_error = self.error_function(new_p, self.est_dur) if self.parameter is None \
+                else self.error_function(new_p, self.est_dur, alpha=self.parameter)
 
             self.X = np.append(self.X, [[self.est_t, self.est_dur]], axis=0)
             self.Y = np.append(self.Y, [[new_error]], axis=0)
