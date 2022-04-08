@@ -148,5 +148,5 @@ class BayesBooster:
         self.results()
         return self.est_alpha, self.model
 
-Booster = BayesBooster(patient=3, k = 0, niter = 0, min_iter = 5, alpha_max=50)
+Booster = BayesBooster(patient=3, k = 0, niter = 0, min_iter = 0, alpha_max=50)
 alpha, m = Booster.optimize()
