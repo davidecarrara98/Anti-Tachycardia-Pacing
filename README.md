@@ -25,6 +25,6 @@ For the mathematical formulation, three different time windows can be considered
 
 
 ## :thought_balloon: Authors 
-- Davide Carrara (@davidecarrara98)
+- Davide Carrara ([@davidecarrara98](https://gitlab.com/davidecarrara98))
 - Lorenzo Galvan ([@lorenzogalvan](https://gitlab.com/lorenzogalvan))
 - Luca Sosta ([@sostaluca](https://gitlab.com/sostaluca))
