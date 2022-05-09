@@ -23,6 +23,10 @@ For the mathematical formulation, three different time windows can be considered
  - ATP windows $`(450,525)\ ms`$ where the impulse (maximum duration $`10\ ms`$) is delivered;
  - tracking window $`(600,800)\ ms`$ to verify the effectiveness of the strategy.
 
+## 🔨 Our Solution
+
+Our solution is mainly based on **Gaussian Processes** and is thorougly explored in the report `SCT_Homework_01.pdf`
+
 
 ## :thought_balloon: Authors 
 - Davide Carrara ([@davidecarrara98](https://gitlab.com/davidecarrara98))
